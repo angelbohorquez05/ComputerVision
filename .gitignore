@@ -1,33 +1,24 @@
-# ─── Python ───────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-.Python
 *.egg-info/
 .pytest_cache/
-.ipynb_checkpoints/
 
-# ─── Ambienti virtuali ────────────────────
+# Virtual environment
 venv/
 .venv/
-env/
-ENV/
 
-# ─── Dati pesanti (NON versionare) ────────
-data/raw/*
-data/processed/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
+# Dataset (not versioned)
+data/*
+!data/.gitkeep
 
-# ─── Pesi / output dei modelli ────────────
-models/*
-!models/.gitkeep
+# Model weights / outputs
 runs/
 *.pt
 *.pkl
 *.onnx
 
-# ─── Sistema / IDE ────────────────────────
+# System / IDE
 .DS_Store
 Thumbs.db
 .vscode/

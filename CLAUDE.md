@@ -14,7 +14,7 @@
 
 > "Se una decisione è importante, deve essere rintracciabile in un documento o in un artefatto nel repository."
 
-Quindi: **ogni decisione tecnica o organizzativa rilevante va registrata in `exam/decision-log.md`** con: (1) la decisione, (2) le alternative considerate, (3) perché è stata scelta questa e non un'altra.
+Quindi: **ogni decisione tecnica o organizzativa rilevante va registrata in `docs/decision-log.md`** con: (1) la decisione, (2) le alternative considerate, (3) perché è stata scelta questa e non un'altra.
 
 ## Lingue
 
@@ -35,22 +35,17 @@ Questo è un **repo "specchio" nuovo, personale, per l'esame**, NON il repo del 
 
 ```
 TINAT/
-├── CLAUDE.md                  # questo file
-├── README.md                  # segue il template della docente (vedi sotto)
-├── exam/
+├── README.md                  # descrizione del progetto (segue il template della docente)
+├── CLAUDE.md                  # questo file (contesto per l'assistente)
+├── src/                       # codice del progetto (preparazione dati, training, inferenza)
+├── tests/                     # pytest — test di base su src/
+├── data/                      # dataset locale (NON versionato; vedi .gitignore)
+├── docs/
 │   └── decision-log.md        # log delle decisioni (formato sotto)
-├── data/
-│   ├── raw/                   # dati grezzi (NON versionare file pesanti; usare .gitignore)
-│   └── processed/             # dati puliti/annotati
-├── notebooks/                 # esplorazione (EDA, prove) — codice "sporco" ammesso
-├── src/                       # codice "pulito" riutilizzabile (scripts, moduli)
-├── tests/                     # pytest — almeno test di base su src/
-├── models/                    # pesi/output (in .gitignore se pesanti)
-├── docs/                      # documentazione extra (diagrammi, note di processo)
 └── requirements.txt           # dipendenze con versioni pinnate
 ```
 
-**Separazione notebooks/ vs src/:** i notebook sono il laboratorio, src/ è la fabbrica. Il codice che si stabilizza migra da notebooks/ a src/ (e questa migrazione è essa stessa una decisione da loggare).
+Struttura minima e volutamente essenziale: solo ciò che serve a un repo di modello reale. Cartelle come `notebooks/` o `models/` verranno aggiunte solo quando conterranno materiale vero, non come scheletri vuoti.
 
 ## Template del README.md (obbligatorio, dalla docente)
 
@@ -84,7 +79,7 @@ Decisioni già note da registrare (chiedere dettagli ad Angel se mancano):
 - Migrazione selettiva dal progetto locale (pezzo per pezzo, un commit per pezzo) invece di un clone completo. Motivo: controllo su cosa entra nel repo + storico di commit granulare come evidenza di processo.
 - Scelta di YOLOv8 (vs altre architetture di detection).
 - Partire da IP102 / classe Miridae come base per il fine-tuning verso Helopeltis.
-- Separazione notebooks/ vs src/.
+- Struttura minima (solo src/tests/data/docs) invece di uno scheletro con molte cartelle vuote.
 - Strategia di branching Git (vedi sotto).
 - Lingue: docs IT / codice EN.
 
@@ -112,11 +107,8 @@ Decisioni già note da registrare (chiedere dettagli ad Angel se mancano):
 ## Backlog iniziale (ordine suggerito)
 
 - [x] Inizializzare repo personale "TINAT" con struttura di cartelle + .gitignore + requirements.txt
-- [ ] README.md con il template (sezioni vuote o bozza)
-- [ ] exam/decision-log.md con le prime 3–4 voci (decisioni già prese: repo specchio personale, migrazione selettiva, YOLOv8, IP102/Miridae)
-- [ ] Migrazione selettiva: portare dal progetto locale i primi file (solo materiale di Angel/pubblico), un commit per pezzo, verificando l'anonimizzazione
+- [x] README.md con il template (in stile progetto reale, senza cornice "esame/simulazione")
+- [x] docs/decision-log.md con le prime voci (repo personale, migrazione selettiva, YOLOv8, IP102/Miridae)
 - [ ] Script minimo in src/ (es. download/preparazione dati IP102 classe Miridae)
-- [ ] Notebook EDA di base sul dataset
 - [ ] 2–3 test pytest sulle funzioni di src/
-- [ ] Sezioni Ciclo di vita ML + MLOps del README (testo, non codice)
-- [ ] Sezione Rischi/assunzioni/limiti — stato onesto del progetto
+- [ ] Primo training di prova (YOLOv8n su CPU) e log dei risultati

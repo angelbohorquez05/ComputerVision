@@ -49,10 +49,10 @@
 **Motivazione:** dataset pubblico, ampio e citato in letteratura, coerente con il dominio.
 **Conseguenze/rischi:** IP102 è un *proxy*; il transfer verso il target reale andrà validato; possibile sbilanciamento delle classi.
 
-## [2026-07-05] Separazione notebooks/ vs src/
+## [2026-07-05] Struttura minima ed essenziale
 
-**Contesto:** serve sia sperimentazione rapida sia codice riutilizzabile e testabile.
-**Alternative considerate:** tenere tutto in notebook (scartato: poco riutilizzabile/testabile); tutto in script (scartato: perde la comodità dell'esplorazione).
-**Decisione:** `notebooks/` = laboratorio (codice "sporco" ammesso); `src/` = fabbrica (codice pulito, testato). Il codice che si stabilizza migra da notebooks a src, e la migrazione è essa stessa una decisione da loggare.
-**Motivazione:** buona pratica DevOps/ML; separa esplorazione da produzione.
-**Conseguenze/rischi:** occorre disciplina per non lasciare logica importante solo nei notebook.
+**Contesto:** una struttura con molte cartelle vuote (`notebooks/`, `models/`, `data/raw`, `data/processed`, `exam/`) rende il repo simile a uno scheletro d'esame più che a un progetto di modello reale.
+**Alternative considerate:** mantenere lo scheletro completo "da manuale" con tutte le cartelle predisposte (scartato: cartelle vuote con `.gitkeep` comunicano "impalcatura", non lavoro reale).
+**Decisione:** ridurre a `src/`, `tests/`, `data/` e `docs/` (con `docs/decision-log.md`). Cartelle aggiuntive verranno create solo quando conterranno materiale reale.
+**Motivazione:** un repo credibile mostra solo ciò che serve; si evita di simulare struttura non ancora usata.
+**Conseguenze/rischi:** alcune cartelle standard (es. per i notebook) andranno aggiunte più avanti, al momento del bisogno.

@@ -1,19 +1,12 @@
 # Core ML / detection
 ultralytics==8.3.0        # YOLOv8
-torch==2.3.1
+torch==2.3.1              # CPU build
 torchvision==0.18.1
 
 # Image handling & data
 numpy==1.26.4
-pandas==2.2.2
 Pillow==10.4.0
 opencv-python==4.10.0.84
-
-# Visualization / EDA
-matplotlib==3.9.2
-
-# Notebooks
-jupyter==1.0.0
 
 # Testing
 pytest==8.3.2
