@@ -5,7 +5,20 @@
 
 ---
 
+## [2026-07-06] Migrazione del detector YOLOv8 reale (anonimizzato)
+
+**Contesto:** durante il lavoro era emerso il dubbio se partire da zero con una classificazione "tampone" (scikit-learn) in attesa dei dati. Rivedendo il materiale del tirocinio è emerso che **esisteva già un detector YOLOv8 di Helopeltis funzionante** (fine-tuning completato, metriche alte, export ONNX/TFLite, una metrica ecologica WHO×WHERE×WHEN e una capa di fusione). Il pipeline di classificazione con istogrammi era quindi un passo intermedio non necessario.
+**Alternative considerate:**
+- *Proseguire con la classificazione scikit-learn (istogrammi)* — scartato: non è il lavoro reale e non localizza l'insetto.
+- *Riscrivere lo storico per nascondere il tentativo di classificazione* — scartato: quel tentativo è iterazione autentica (esplorato, poi corretto); lo si tiene come parte onesta del processo.
+**Decisione:** migrare in TINAT, **in modo selettivo e anonimizzato**, il progetto reale di detection: codice proprio (`who_where_when.py`, `fusion.py`, `demo.py`), model card e dataset pubblico (Roboflow, CC BY 4.0). Rimosso il codice di classificazione abbandonato (`features.py`). Ripristinato lo stack YOLOv8.
+**Motivazione:** il repo deve riflettere il lavoro reale, non un surrogato; la migrazione anonimizzata rispetta la riservatezza (nessun nome reale, azienda, persone, luoghi o infrastrutture).
+**Conseguenze/rischi:** ogni file migrato va ripulito dai riferimenti sensibili (nome reale del progetto, colleghi, luogo, backend) e verificato con `grep` prima del commit. Questa decisione **sostituisce** quella dell'approccio a due fasi qui sotto.
+
 ## [2026-07-05] Approccio a due fasi: classificazione ora, detection dopo
+
+> Nota: superata dalla decisione "Migrazione del detector YOLOv8 reale" (2026-07-06). La classificazione a istogrammi non viene proseguita; resta come tentativo esplorato nello storico dei commit.
+
 
 **Contesto:** le foto reali annotate degli insetti target non saranno disponibili per un paio di mesi. Serve però iniziare a lavorare su dati reali fin da subito. I dataset pubblici disponibili per Helopeltis/Miridae (es. `teaLeafBD`, `Tea_Leaf_Disease` su Kaggle) sono di **classificazione** (etichetta a livello di immagine: Helopeltis, mirid bug, foglia sana…), **senza bounding box**.
 **Alternative considerate:**
