@@ -67,6 +67,8 @@ TINAT/
 - **Export:** ONNX e TFLite (deploy offline su mobile).
 - **Risultati (test set, 49 immagini da internet):** mAP@0.5 ≈ 0.995, precision ≈ 0.99, recall = 1.0. *Da leggere con cautela:* test set piccolo e stesso dominio "internet" del training; il vero banco di prova saranno le foto reali dal campo.
 
+Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [model card](docs/model-card.md).
+
 ## Ciclo di vita del modello
 
 - **Dati:** download del dataset pubblico (Roboflow) e organizzazione in `data/`.
