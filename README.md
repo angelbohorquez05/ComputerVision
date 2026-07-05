@@ -1,81 +1,68 @@
 # TINAT — Rilevamento di insetti (Helopeltis/Miridae) con YOLOv8
 
-> Progetto d'esame — UFS14 *Processo e Sviluppo del Software* (DevOps-Agile), ITS Angelo Rizzoli.
-> Lavoro individuale. Documentazione in italiano, codice in inglese.
+Sistema di *object detection* per individuare e localizzare insetti della famiglia **Miridae** (in particolare il genere **Helopeltis**) all'interno di immagini, basato su **YOLOv8**.
 
----
+## Descrizione
 
-## 1. Project name / idea
+Il monitoraggio manuale degli insetti dannosi sulle colture è lento e soggetto a errore. TINAT automatizza il riconoscimento: data un'immagine, individua la presenza degli insetti target e ne restituisce le *bounding box*, così da supportare decisioni agronomiche più tempestive.
 
-**TINAT** è un sistema di *object detection* per individuare insetti della famiglia **Miridae** (in particolare il genere **Helopeltis**) all'interno di immagini, usando **YOLOv8**.
+Il modello viene addestrato per *fine-tuning* a partire da pesi YOLOv8 pre-addestrati, usando esclusivamente dati pubblici.
 
-È la versione "specchio" e **anonimizzata** di un progetto nato in contesto di tirocinio: qui vengono usati **solo dataset pubblici** e codice riscritto da zero, senza alcun dato, peso o riferimento proprietario. Lo scopo del repo è mostrare il **processo di sviluppo** (organizzazione, decisioni tracciate, ciclo di vita ML), non ottenere un modello perfetto.
+## Requisiti e installazione
 
-## 2. Setup / How to run this project
-
-> Scritto per chi non ha mai visto il progetto. Requisiti minimi: **Python 3.10+** e `git`.
+Requisiti: **Python 3.10+** e `git`. Il progetto gira **su CPU** e non richiede una GPU.
 
 ```bash
-# 1. Clonare il repository
-git clone <url-del-repo-personale>
+git clone https://github.com/angelbohorquez05/TINAT.git
 cd TINAT
 
-# 2. Creare e attivare un ambiente virtuale
 python -m venv venv
 # Windows (PowerShell)
 venv\Scripts\Activate.ps1
 # macOS / Linux
 source venv/bin/activate
 
-# 3. Installare le dipendenze
 pip install -r requirements.txt
-
-# 4. (Quando disponibili) lanciare i test
-pytest tests/
 ```
 
-**Requisiti di sistema:** una GPU NVIDIA con CUDA velocizza molto il training di YOLOv8, ma non è obbligatoria (il training può girare su CPU, più lentamente). Le librerie esterne principali sono elencate in [`requirements.txt`](requirements.txt) con versioni pinnate.
+## Dataset
 
-> **Stato attuale:** il repository è in fase di *scaffolding*. La struttura, la documentazione e il tracciamento delle decisioni sono impostati; il codice di training/inferenza e i dati verranno aggiunti in modo incrementale (un commit per pezzo). Vedi la sezione *Rischi, assunzioni e limiti*.
+- **Origine:** [IP102](https://github.com/xpwu95/IP102), dataset pubblico di *insect pest recognition* (oltre 75.000 immagini, 102 classi di parassiti agricoli).
+- **Sottoinsieme usato:** le classi riconducibili alla famiglia **Miridae**, come base per il *transfer* verso *Helopeltis*.
+- **Perché:** è pubblico, ampiamente usato in letteratura e coerente con il dominio (parassiti delle colture).
+- **Qualità dei dati:** le immagini corrotte o non apribili vengono scartate in fase di caricamento; le annotazioni incoerenti vengono ignorate e registrate a log.
 
-## 3. Spiegazione del progetto
+I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente nella cartella `data/`.
 
-**Obiettivo:** dato un insieme di immagini, rilevare e localizzare (bounding box) la presenza di insetti target.
+## Struttura
 
-**Problema che risolve:** il monitoraggio manuale degli insetti su colture è lento e soggetto a errore umano. Un rilevatore automatico può segnalare precocemente la presenza dei parassiti, supportando decisioni agronomiche più tempestive.
+```
+TINAT/
+├── src/     codice del progetto (preparazione dati, training, inferenza)
+├── tests/   test con pytest
+├── data/    dataset locale (non versionato)
+├── docs/    documentazione e log delle decisioni di progetto
+└── requirements.txt
+```
 
-## 4. Dati
+## Ciclo di vita del modello
 
-- **Origine:** [IP102](https://github.com/xpwu95/IP102) — dataset pubblico di *insect pest recognition* (>75.000 immagini, 102 classi). Da qui si parte dalla/e classe/i riconducibili alla famiglia **Miridae** come base per il fine-tuning verso Helopeltis.
-- **Perché quello:** è pubblico, ampiamente citato in letteratura, e copre parassiti agricoli — coerente con il dominio senza usare dati proprietari.
-- **Caratteristiche:** immagini reali eterogenee (illuminazione, sfondo, scala variabili) — utile per testare la robustezza.
-- **Gestione dati mancanti/malformattati:** immagini corrotte o non apribili vengono scartate in fase di caricamento; le annotazioni mancanti/incoerenti vengono loggate e non usate per il training. *(Dettaglio implementativo da completare nello script di preparazione dati.)*
+- **Dati:** download del sottoinsieme IP102 e organizzazione in `data/`.
+- **Training:** fine-tuning di YOLOv8 sulle classi target.
+- **Validazione:** split train/val e metriche di detection (mAP@0.5, precision, recall).
+- **Inferenza:** predizione su singola immagine o cartella, con salvataggio delle immagini annotate.
 
-## 5. Ciclo di vita ML
+## MLOps
 
-- **Raccolta dati:** download selettivo di IP102 (solo classi rilevanti), organizzazione in `data/raw` → `data/processed`.
-- **Training:** fine-tuning di un modello YOLOv8 pre-addestrato sulle classi target.
-- **Validazione:** split train/val, metriche di detection (mAP@0.5, precision, recall) su un set di validazione tenuto separato.
-- **Deploy:** script di inferenza su singola immagine o cartella, con salvataggio delle immagini annotate.
-- **Monitoring:** vedi sezione MLOps.
+- **Monitoraggio:** distribuzione delle immagini in ingresso (*drift* stagionale/di dominio), tasso di falsi negativi segnalati, andamento di mAP nel tempo.
+- **Criteri di re-training:** calo di mAP sotto soglia, accumulo di nuovi errori segnalati, disponibilità di nuovi dati etichettati, cambio delle condizioni di ripresa (luce/coltura).
 
-## 6. MLOps
+## Limiti e note
 
-- **Cosa monitorare:** distribuzione delle immagini in ingresso (drift stagionale/di dominio), tasso di falsi negativi segnalati dagli utenti, andamento di mAP sul set di validazione nel tempo.
-- **Criteri per il re-training:**
-  - calo di mAP sotto una soglia concordata;
-  - accumulo di nuovi falsi negativi/positivi segnalati;
-  - **drift stagionale** delle immagini (condizioni di luce/coltura diverse);
-  - disponibilità di nuovi dati etichettati.
+- Il training su CPU è più lento rispetto a una GPU: per il fine-tuning conviene usare i modelli YOLOv8 leggeri (`n`/`s`) e immagini ridimensionate.
+- IP102 è usato come base pubblica: il transfer verso il target reale va validato su dati specifici.
+- Le classi possono essere sbilanciate; da valutare *augmentation* e ribilanciamento.
 
-## 7. Rischi, assunzioni e limiti
+## Decisioni di progetto
 
-- **Stato onesto:** il progetto **non è ancora funzionante end-to-end**. Al momento è impostato lo scheletro (struttura, docs, decision-log, dipendenze). Codice di training/inferenza, dati e modelli sono da aggiungere.
-- **Assunzione:** IP102 (classe Miridae) è una base sufficiente come *proxy* pubblico per Helopeltis; il transfer verso il target reale andrà validato.
-- **Limiti:** risorse di calcolo limitate (training su CPU lento); dataset target reale non disponibile per riservatezza; possibile sbilanciamento delle classi.
-- **Come ampliarlo:** aggiungere dati etichettati specifici, provare augmentation, confrontare varianti di YOLOv8 (n/s/m), aggiungere un piccolo servizio di inferenza.
-
-## 8. Ulteriori informazioni
-
-- Le decisioni tecniche e organizzative sono tracciate in [`exam/decision-log.md`](exam/decision-log.md).
-- Il contesto per l'assistente di sviluppo è in [`CLAUDE.md`](CLAUDE.md).
+Le scelte tecniche e organizzative sono tracciate in [`docs/decision-log.md`](docs/decision-log.md).
