@@ -1,21 +1,24 @@
-# TINAT — Riconoscimento di insetti dannosi (Helopeltis/Miridae)
+# TINAT — Rilevamento di Helopeltis (Miridae) con YOLOv8
 
-Sistema di riconoscimento su immagini di insetti dannosi delle colture, con focus sul genere **Helopeltis** (famiglia **Miridae**).
+Sistema di *object detection* per individuare e localizzare insetti dannosi del genere **Helopeltis** (famiglia **Miridae**) su colture di tè, con una metrica ecologica che arricchisce ogni rilevamento.
 
-Il progetto è organizzato in due fasi:
-
-- **Fase 1 — classificazione (attuale):** dato un'immagine, prevedere la classe (es. presenza di Helopeltis / mirid bug / foglia sana) con un pipeline multi-modello classico (scikit-learn). Leggero, gira su CPU, usa dati pubblici già disponibili.
-- **Fase 2 — detection (futura):** localizzare gli insetti con *bounding box* usando YOLOv8, quando saranno disponibili le foto reali annotate.
+> Il progetto nasce in un contesto di **tirocinio** ed è qui pubblicato in versione **anonimizzata** (nessun riferimento a nome reale, azienda, persone o luoghi), usando esclusivamente **dati pubblici**. L'obiettivo del repo è mostrare il processo di sviluppo (organizzazione, decisioni, ciclo di vita ML), non un modello di produzione.
 
 ## Descrizione
 
-Il monitoraggio manuale degli insetti dannosi sulle colture è lento e soggetto a errore. TINAT automatizza il riconoscimento a partire da un'immagine, così da supportare decisioni agronomiche più tempestive.
+Il monitoraggio manuale degli insetti dannosi sul tè è lento e soggetto a errore. TINAT automatizza il riconoscimento a partire da un'immagine e, oltre a rilevare l'insetto, ne qualifica l'**interazione ecologica** con la pianta tramite una metrica a tre dimensioni:
 
-Nella Fase 1 il modello viene addestrato e confrontato su più classificatori (Random Forest, SVC, K-Neighbors, Logistic Regression) tramite *cross-validation*, e viene scelto automaticamente il migliore.
+| Dimensione | Domanda | Esempio |
+|-----------|---------|---------|
+| **WHO** | Quale insetto, con quale ruolo? | *Helopeltis* spp. — parassita |
+| **WHERE** | In quale zona della pianta? | Zona di efficienza (foglie/steli) |
+| **WHEN** | In quale stadio della coltura? | `new_flush` — germogli teneri |
+
+Un parassita su un germoglio tenero è un evento molto diverso dallo stesso parassita su una foglia matura: questa struttura trasforma le rilevazioni grezze in dati azionabili. La logica è in [`src/who_where_when.py`](src/who_where_when.py).
 
 ## Requisiti e installazione
 
-Requisiti: **Python 3.10+** e `git`. Il progetto gira **su CPU** e non richiede una GPU.
+Requisiti: **Python 3.10+** e `git`. Tutto gira **su CPU** (nessuna GPU richiesta).
 
 ```bash
 git clone https://github.com/angelbohorquez05/TINAT.git
@@ -38,42 +41,57 @@ pytest
 
 ## Dataset
 
-- **Origine (Fase 1):** dataset pubblici di immagini di foglie di tè che includono le classi di interesse, come **teaLeafBD** e **Tea_Leaf_Disease** (Kaggle), con le classi **Helopeltis** (tea mosquito bug) e **Green mirid bug** (Miridae), oltre a foglia sana e altre condizioni.
-- **Perché:** sono pubblici e contengono immagini reali proprio degli insetti target, quindi permettono di iniziare a lavorare su dati reali fin da subito.
-- **Qualità dei dati:** le immagini corrotte o non apribili vengono scartate in fase di caricamento (vedi `src/features.py`).
-- I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente nella cartella `data/`, con una sotto-cartella per classe.
+- **Origine:** dataset pubblico su **Roboflow Universe** (licenza **CC BY 4.0**), con immagini di *Helopeltis* raccolte da fonti pubbliche (GBIF, iNaturalist, letteratura sui parassiti del tè).
+- **Composizione:** ~483 immagini annotate con *bounding box* (split 80/10/10 train/val/test), classe singola `Helopeltis spp.`.
+- **Perché:** è pubblico, annotato in formato detection e coerente con il target, quindi permette di lavorare fin da subito senza dati proprietari.
+- **Qualità/limiti dei dati:** immagini da internet (illuminazione, sfondi e angolazioni vari), soprattutto insetti adulti su foglie. Le immagini reali dal campo non sono ancora disponibili (previste tra qualche mese): c'è quindi un *domain gap* da validare.
+- I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente in `data/`.
 
 ## Struttura
 
 ```
 TINAT/
-├── src/            codice del progetto
-│   └── features.py  estrazione feature (istogrammi di colore) e caricamento dataset
-├── tests/          test con pytest
-├── data/           dataset locale (non versionato)
-├── docs/           documentazione e log delle decisioni di progetto
+├── src/                  codice del progetto
+│   └── who_where_when.py  metrica ecologica WHO×WHERE×WHEN
+├── tests/                test con pytest
+├── data/                 dataset locale (non versionato)
+├── docs/                 documentazione e log delle decisioni
 ├── requirements.txt
 └── pytest.ini
 ```
 
+## Il modello
+
+- **Architettura:** YOLOv8-n (Ultralytics), pre-addestrato su COCO e poi fine-tuned sul dataset pubblico di Helopeltis.
+- **Input/Output:** immagine RGB → *bounding box* + confidenza.
+- **Export:** ONNX e TFLite (deploy offline su mobile).
+- **Risultati (test set, 49 immagini da internet):** mAP@0.5 ≈ 0.995, precision ≈ 0.99, recall = 1.0. *Da leggere con cautela:* test set piccolo e stesso dominio "internet" del training; il vero banco di prova saranno le foto reali dal campo.
+
 ## Ciclo di vita del modello
 
-- **Dati:** download del dataset pubblico e organizzazione in `data/` (una cartella per classe).
-- **Feature:** estrazione di istogrammi di colore RGB per immagine.
-- **Training e selezione:** confronto di più classificatori in cross-validation, scelta automatica del migliore.
-- **Validazione:** metriche di classificazione (accuratezza, e in seguito precision/recall per classe).
-- **Inferenza:** predizione della classe su nuove immagini.
+- **Dati:** download del dataset pubblico (Roboflow) e organizzazione in `data/`.
+- **Training:** fine-tuning di YOLOv8-n su CPU (mantiene la classe target Helopeltis).
+- **Validazione:** metriche di detection (mAP@0.5, mAP@0.5:0.95, precision, recall per classe).
+- **Export/Deploy:** conversione in ONNX/TFLite per l'inferenza su CPU/mobile.
+- **Monitoring:** vedi MLOps.
 
 ## MLOps
 
-- **Monitoraggio:** distribuzione delle immagini in ingresso (*drift* stagionale/di dominio), errori segnalati dagli utenti, andamento dell'accuratezza nel tempo.
-- **Criteri di re-training:** calo dell'accuratezza sotto soglia, nuovi errori segnalati, disponibilità di nuovi dati etichettati (incluse le foto reali della Fase 2), cambio delle condizioni di ripresa.
+- **Cosa monitorare:** distribuzione delle immagini in ingresso (*domain/seasonal drift*), tasso di falsi negativi segnalati, andamento di mAP nel tempo.
+- **Criteri di re-training:** calo di mAP sotto soglia; nuovi falsi negativi/positivi; arrivo delle foto reali dal campo; cambio delle condizioni di ripresa.
+- **Coda "Needs Review":** le rilevazioni a bassa confidenza (< 0.65) vengono instradate per revisione e futuro ri-addestramento.
+
+## Roadmap
+
+- **Classificatore dello stadio di flush** (germoglio nuovo / foglia matura) per popolare la dimensione WHEN.
+- **Livello di fusione:** combina detection, zona della pianta e stadio in un unico record `Observation`, con aggregazione temporale su più frame.
+- **Validazione su foto reali dal campo** quando disponibili → fine-tuning con dati di dominio.
 
 ## Limiti e note
 
-- La classificazione a livello di immagine **non localizza** l'insetto (niente bounding box): è un passo intermedio verso la detection della Fase 2.
-- Gli istogrammi di colore sono feature semplici: robuste e veloci, ma meno potenti di feature apprese (CNN). Scelta voluta per restare leggeri su CPU.
-- Le classi dei dataset pubblici possono essere sbilanciate; da valutare *augmentation* e ribilanciamento.
+- **Domain gap:** il modello è addestrato su foto da internet, non da campo reale: le metriche alte non garantiscono le stesse prestazioni sul campo.
+- **Classe singola:** rileva Helopeltis, ma non lo distingue ancora da altri Miridae simili.
+- **Frame singolo:** l'inferenza è per-immagine; la stabilità su frame sfocati/parziali dipende dall'aggregazione temporale (roadmap).
 
 ## Decisioni di progetto
 
