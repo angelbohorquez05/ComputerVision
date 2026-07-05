@@ -1,12 +1,14 @@
-# Core ML / detection
-ultralytics==8.3.0        # YOLOv8
-torch==2.3.1              # CPU build
-torchvision==0.18.1
-
-# Image handling & data
+# Phase 1 — image classification (CPU-friendly)
 numpy==1.26.4
 Pillow==10.4.0
-opencv-python==4.10.0.84
+scikit-learn==1.5.1
+joblib==1.4.2
+matplotlib==3.9.2
 
 # Testing
 pytest==8.3.2
+
+# Phase 2 (later) — YOLOv8 object detection on real annotated photos
+# ultralytics
+# torch
+# torchvision
