@@ -6,7 +6,7 @@
 
 - **Corso:** UFS14 — Processo e Sviluppo del Software (DevOps-Agile), ITS Angelo Rizzoli, Milano.
 - **Studente:** Angel (lavoro **individuale**).
-- **Progetto:** **TINAT** — rilevamento di insetti (Helopeltis/Miridae) con YOLOv8. Versione "specchio" anonimizzata di un progetto di tirocinio (il nome reale del progetto e l'azienda NON vanno mai menzionati nel repo).
+- **Progetto:** **TINAT** — riconoscimento di insetti dannosi (Helopeltis/Miridae) su immagini. Approccio a due fasi: **Fase 1** classificazione con pipeline multi-modello scikit-learn su dati pubblici (ora); **Fase 2** detection con YOLOv8 su foto reali annotate (futura). Versione "specchio" anonimizzata di un progetto di tirocinio (il nome reale del progetto e l'azienda NON vanno mai menzionati nel repo).
 - **Consegna:** repo GitHub **personale e indipendente** (sul profilo di Angel), non il repo condiviso di classe. Scelta motivata: controllo totale sullo storico dei commit (che è l'artefatto da mostrare), nessuna dipendenza da PR/issue accettati da altri. Presentazione in classe dal computer di Angel; eventualmente la docente viene invitata come collaboratrice per rivedere lo storico e commentare come migliorarlo.
 - **Priorità del corso:** alla docente interessa il **processo** (organizzazione, decisioni, tracciabilità, ciclo di vita ML, MLOps), NON la perfezione del codice o del modello. Il progetto può essere incompleto: l'importante è documentare onestamente dove si trova e perché.
 

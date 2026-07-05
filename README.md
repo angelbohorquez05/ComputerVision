@@ -1,12 +1,17 @@
-# TINAT — Rilevamento di insetti (Helopeltis/Miridae) con YOLOv8
+# TINAT — Riconoscimento di insetti dannosi (Helopeltis/Miridae)
 
-Sistema di *object detection* per individuare e localizzare insetti della famiglia **Miridae** (in particolare il genere **Helopeltis**) all'interno di immagini, basato su **YOLOv8**.
+Sistema di riconoscimento su immagini di insetti dannosi delle colture, con focus sul genere **Helopeltis** (famiglia **Miridae**).
+
+Il progetto è organizzato in due fasi:
+
+- **Fase 1 — classificazione (attuale):** dato un'immagine, prevedere la classe (es. presenza di Helopeltis / mirid bug / foglia sana) con un pipeline multi-modello classico (scikit-learn). Leggero, gira su CPU, usa dati pubblici già disponibili.
+- **Fase 2 — detection (futura):** localizzare gli insetti con *bounding box* usando YOLOv8, quando saranno disponibili le foto reali annotate.
 
 ## Descrizione
 
-Il monitoraggio manuale degli insetti dannosi sulle colture è lento e soggetto a errore. TINAT automatizza il riconoscimento: data un'immagine, individua la presenza degli insetti target e ne restituisce le *bounding box*, così da supportare decisioni agronomiche più tempestive.
+Il monitoraggio manuale degli insetti dannosi sulle colture è lento e soggetto a errore. TINAT automatizza il riconoscimento a partire da un'immagine, così da supportare decisioni agronomiche più tempestive.
 
-Il modello viene addestrato per *fine-tuning* a partire da pesi YOLOv8 pre-addestrati, usando esclusivamente dati pubblici.
+Nella Fase 1 il modello viene addestrato e confrontato su più classificatori (Random Forest, SVC, K-Neighbors, Logistic Regression) tramite *cross-validation*, e viene scelto automaticamente il migliore.
 
 ## Requisiti e installazione
 
@@ -25,43 +30,50 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Per lanciare i test:
+
+```bash
+pytest
+```
+
 ## Dataset
 
-- **Origine:** [IP102](https://github.com/xpwu95/IP102), dataset pubblico di *insect pest recognition* (oltre 75.000 immagini, 102 classi di parassiti agricoli).
-- **Sottoinsieme usato:** le classi riconducibili alla famiglia **Miridae**, come base per il *transfer* verso *Helopeltis*.
-- **Perché:** è pubblico, ampiamente usato in letteratura e coerente con il dominio (parassiti delle colture).
-- **Qualità dei dati:** le immagini corrotte o non apribili vengono scartate in fase di caricamento; le annotazioni incoerenti vengono ignorate e registrate a log.
-
-I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente nella cartella `data/`.
+- **Origine (Fase 1):** dataset pubblici di immagini di foglie di tè che includono le classi di interesse, come **teaLeafBD** e **Tea_Leaf_Disease** (Kaggle), con le classi **Helopeltis** (tea mosquito bug) e **Green mirid bug** (Miridae), oltre a foglia sana e altre condizioni.
+- **Perché:** sono pubblici e contengono immagini reali proprio degli insetti target, quindi permettono di iniziare a lavorare su dati reali fin da subito.
+- **Qualità dei dati:** le immagini corrotte o non apribili vengono scartate in fase di caricamento (vedi `src/features.py`).
+- I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente nella cartella `data/`, con una sotto-cartella per classe.
 
 ## Struttura
 
 ```
 TINAT/
-├── src/     codice del progetto (preparazione dati, training, inferenza)
-├── tests/   test con pytest
-├── data/    dataset locale (non versionato)
-├── docs/    documentazione e log delle decisioni di progetto
-└── requirements.txt
+├── src/            codice del progetto
+│   └── features.py  estrazione feature (istogrammi di colore) e caricamento dataset
+├── tests/          test con pytest
+├── data/           dataset locale (non versionato)
+├── docs/           documentazione e log delle decisioni di progetto
+├── requirements.txt
+└── pytest.ini
 ```
 
 ## Ciclo di vita del modello
 
-- **Dati:** download del sottoinsieme IP102 e organizzazione in `data/`.
-- **Training:** fine-tuning di YOLOv8 sulle classi target.
-- **Validazione:** split train/val e metriche di detection (mAP@0.5, precision, recall).
-- **Inferenza:** predizione su singola immagine o cartella, con salvataggio delle immagini annotate.
+- **Dati:** download del dataset pubblico e organizzazione in `data/` (una cartella per classe).
+- **Feature:** estrazione di istogrammi di colore RGB per immagine.
+- **Training e selezione:** confronto di più classificatori in cross-validation, scelta automatica del migliore.
+- **Validazione:** metriche di classificazione (accuratezza, e in seguito precision/recall per classe).
+- **Inferenza:** predizione della classe su nuove immagini.
 
 ## MLOps
 
-- **Monitoraggio:** distribuzione delle immagini in ingresso (*drift* stagionale/di dominio), tasso di falsi negativi segnalati, andamento di mAP nel tempo.
-- **Criteri di re-training:** calo di mAP sotto soglia, accumulo di nuovi errori segnalati, disponibilità di nuovi dati etichettati, cambio delle condizioni di ripresa (luce/coltura).
+- **Monitoraggio:** distribuzione delle immagini in ingresso (*drift* stagionale/di dominio), errori segnalati dagli utenti, andamento dell'accuratezza nel tempo.
+- **Criteri di re-training:** calo dell'accuratezza sotto soglia, nuovi errori segnalati, disponibilità di nuovi dati etichettati (incluse le foto reali della Fase 2), cambio delle condizioni di ripresa.
 
 ## Limiti e note
 
-- Il training su CPU è più lento rispetto a una GPU: per il fine-tuning conviene usare i modelli YOLOv8 leggeri (`n`/`s`) e immagini ridimensionate.
-- IP102 è usato come base pubblica: il transfer verso il target reale va validato su dati specifici.
-- Le classi possono essere sbilanciate; da valutare *augmentation* e ribilanciamento.
+- La classificazione a livello di immagine **non localizza** l'insetto (niente bounding box): è un passo intermedio verso la detection della Fase 2.
+- Gli istogrammi di colore sono feature semplici: robuste e veloci, ma meno potenti di feature apprese (CNN). Scelta voluta per restare leggeri su CPU.
+- Le classi dei dataset pubblici possono essere sbilanciate; da valutare *augmentation* e ribilanciamento.
 
 ## Decisioni di progetto
 
