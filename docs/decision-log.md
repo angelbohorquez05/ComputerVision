@@ -5,6 +5,16 @@
 
 ---
 
+## [2026-07-05] Approccio a due fasi: classificazione ora, detection dopo
+
+**Contesto:** le foto reali annotate degli insetti target non saranno disponibili per un paio di mesi. Serve però iniziare a lavorare su dati reali fin da subito. I dataset pubblici disponibili per Helopeltis/Miridae (es. `teaLeafBD`, `Tea_Leaf_Disease` su Kaggle) sono di **classificazione** (etichetta a livello di immagine: Helopeltis, mirid bug, foglia sana…), **senza bounding box**.
+**Alternative considerate:**
+- *Partire subito con YOLOv8 (detection)* — scartato per ora: richiede immagini annotate con bounding box, che non ho; su CPU è pesante; i dati pubblici disponibili non sono in formato detection.
+- *Aspettare le foto reali per iniziare* — scartato: bloccherebbe il progetto per settimane.
+**Decisione:** dividere il progetto in due fasi. **Fase 1 (ora):** classificazione di immagini con un pipeline multi-modello classico (scikit-learn: istogrammi di colore + RandomForest/SVC/KNN/LogisticRegression + cross-validation), riusando l'architettura già sperimentata in un progetto precedente. **Fase 2 (dopo):** object detection con YOLOv8 quando arriveranno le foto reali annotate.
+**Motivazione:** consente di lavorare su dati reali e ottenere un pipeline funzionante su CPU fin da subito, con codice che conosco e so difendere; l'evoluzione verso la detection resta pianificata.
+**Conseguenze/rischi:** questa scelta **sostituisce** la decisione precedente di partire direttamente da YOLOv8. La classificazione a livello di immagine non localizza l'insetto (niente bounding box): è un passo intermedio, non l'obiettivo finale.
+
 ## [2026-07-05] Repo personale e indipendente (non il repo condiviso di classe)
 
 **Contesto:** il progetto d'esame va versionato su GitHub. Esiste un repo di classe condiviso (`2025-27.ML---UFS14`) in cui ogni studente aggiunge una cartella; in alternativa si può usare un repo personale dedicato.
@@ -32,6 +42,8 @@
 **Conseguenze/rischi:** processo più lento ma molto più trasparente e verificabile.
 
 ## [2026-07-05] YOLOv8 come architettura di detection
+
+> Nota: rivista dalla decisione "Approccio a due fasi" (vedi sopra). YOLOv8 resta la scelta per la **Fase 2** (detection su foto reali annotate), non per la Fase 1.
 
 **Contesto:** il compito è *object detection* (rilevare e localizzare insetti), non semplice classificazione.
 **Alternative considerate:**
