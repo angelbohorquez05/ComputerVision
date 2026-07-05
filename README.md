@@ -52,10 +52,13 @@ pytest
 ```
 TINAT/
 ├── src/                  codice del progetto
-│   └── who_where_when.py  metrica ecologica WHO×WHERE×WHEN
+│   ├── who_where_when.py  metrica ecologica WHO×WHERE×WHEN
+│   ├── fusion.py          motore di fusione (detector + zona + stadio → Observation)
+│   └── demo.py            demo end-to-end su dati sintetici
 ├── tests/                test con pytest
+├── notebooks/            fine-tuning del detector (01) e classificatore di stadio (02)
 ├── data/                 dataset locale (non versionato)
-├── docs/                 documentazione e log delle decisioni
+├── docs/                 documentazione, model card e log delle decisioni
 ├── requirements.txt
 └── pytest.ini
 ```
