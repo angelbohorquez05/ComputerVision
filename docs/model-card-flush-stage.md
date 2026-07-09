@@ -64,6 +64,7 @@ Non versionati (vedi `.gitignore`); si rigenerano con lo script:
 - `models/flush_stage.onnx` — grafo ONNX (1×3×224×224).
 - `models/flush_stage.tflite` — modello TFLite (NHWC 1×224×224×3 → 2 logit), convertito con `onnx2tf`.
 - `models/flush_stage_metrics.json` — riepilogo delle metriche.
+- `models/flush_stage_predictions.png`, `models/flush_stage_confusion.png` — visualizzazioni dei risultati sul test set (rigenerabili con `python -m src.viz_flush_stage`).
 
 ## Integrazione
 
