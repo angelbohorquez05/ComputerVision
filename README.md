@@ -1,5 +1,7 @@
 # TINAT — Rilevamento di Helopeltis (Miridae) con YOLOv8
 
+[![CI](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml)
+
 Sistema di *object detection* per individuare e localizzare insetti dannosi del genere **Helopeltis** (famiglia **Miridae**) su colture di tè, con una metrica ecologica che arricchisce ogni rilevamento.
 
 > Il progetto nasce in un contesto di **tirocinio** ed è qui pubblicato in versione **anonimizzata** (nessun riferimento a nome reale, azienda, persone o luoghi), usando esclusivamente **dati pubblici**. L'obiettivo del repo è mostrare il processo di sviluppo (organizzazione, decisioni, ciclo di vita ML), non un modello di produzione.

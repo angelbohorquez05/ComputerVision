@@ -1,0 +1,33 @@
+name: CI
+
+# Run the test suite on every push and pull request to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code onto the runner.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # 2. Install the minimum Python version the project supports (see README).
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3. Install pytest only. The tested modules (who_where_when.py, fusion.py)
+      #    depend on the standard library alone, so the heavy ML stack in
+      #    requirements.txt is not needed to run the tests. See decision-log.
+      - name: Install test dependencies
+        run: pip install pytest
+
+      # 4. Run the test suite from the repository root.
+      - name: Run tests
+        run: pytest

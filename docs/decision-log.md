@@ -5,6 +5,17 @@
 
 ---
 
+## [2026-07-09] Integrazione continua (CI) con GitHub Actions
+
+**Contesto:** il corso è DevOps-Agile e il repository ha già una suite di test (`pytest`, 10 casi), ma nulla li esegue in automatico: i test vengono lanciati solo a mano. Manca l'artefatto DevOps più tipico, la *continuous integration*.
+**Alternative considerate:**
+- *Nessuna CI, test solo a mano* — scartato: niente evidenza automatica di processo, il valore chiave per l'esame.
+- *CI che installa tutto `requirements.txt` (torch, tensorflow, ultralytics)* — scartato: l'installazione è pesante, lenta e fragile, e i moduli coperti dai test (`who_where_when.py`, `fusion.py`) usano solo la libreria standard di Python; installare lo stack ML completo non serve per eseguire i test.
+- *GitLab CI / altri runner* — scartato: il repo è su GitHub, GitHub Actions è integrato e senza configurazione esterna.
+**Decisione:** aggiungere un workflow GitHub Actions (`.github/workflows/ci.yml`) che, a ogni push e pull request su `main`, su Python 3.10 (versione minima dichiarata) installa solo `pytest` ed esegue la suite di test.
+**Motivazione:** fornisce evidenza automatica e tracciabile che il codice resta sano a ogni commit (cuore della CI), restando semplice, veloce e affidabile.
+**Conseguenze/rischi:** la CI verifica la logica pura (metrica e fusione), non il training né le dipendenze ML pesanti; questo è un limite consapevole e documentato. Se in futuro i test copriranno codice che usa lo stack ML, il workflow andrà esteso per installare le dipendenze necessarie.
+
 ## [2026-07-06] Migrazione del detector YOLOv8 reale (anonimizzato)
 
 **Contesto:** durante il lavoro era emerso il dubbio se partire da zero con una classificazione "tampone" (scikit-learn) in attesa dei dati. Rivedendo il materiale del tirocinio è emerso che **esisteva già un detector YOLOv8 di Helopeltis funzionante** (fine-tuning completato, metriche alte, export ONNX/TFLite, una metrica ecologica WHO×WHERE×WHEN e una capa di fusione). Il pipeline di classificazione con istogrammi era quindi un passo intermedio non necessario.
