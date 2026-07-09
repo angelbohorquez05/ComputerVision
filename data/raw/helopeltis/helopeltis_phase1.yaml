@@ -1,4 +1,4 @@
-path: C:\Users\AngelTatianaMendozaB\OneDrive - ITS Angelo Rizzoli\Desktop\G\Helopeltis_detection\data\raw\helopeltis
+path: C:\Users\AngelTatianaMendozaB\OneDrive - ITS Angelo Rizzoli\Desktop\G\TINAT\data\raw\helopeltis
 train: train/images
 val: valid/images
 test: test/images
