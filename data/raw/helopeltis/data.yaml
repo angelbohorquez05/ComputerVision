@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Helopeltis']
+
+roboflow:
+  workspace: angels-ydc8l
+  project: helopeltis-yz1xl-sljp8
+  version: dataset
+  license: CC BY 4.0
+  url: https://app.roboflow.com/angels-ydc8l/helopeltis-yz1xl-sljp8/dataset
