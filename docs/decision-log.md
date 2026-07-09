@@ -7,6 +7,22 @@
 
 ---
 
+## [2026-07-09] Dataset e mappatura delle classi per il classificatore flush-stage (Workstream B)
+
+**Contesto:** il Workstream B dell'outline richiede un **classificatore di stadio di flush** (dormant / new_flush / mature_leaf), a partire da un backbone mobile (transfer learning). Serviva una fonte pubblica di immagini di foglie di tè etichettate per stadio/età.
+**Alternative considerate:**
+- *Versione "Annotated" / "Annotated+Augmented" del dataset TeaLeafAgeQuality* — scartata: sono in formato detection (bounding box + labels), mentre il WS-B è **classificazione** (una classe per immagine).
+- *Versionare le immagini in git* — scartata: il dataset completo è ~4 GB, incompatibile con un repo leggero.
+- *Mappatura a 3 classi (A / B+C / D)* — scartata per ora: sbilanciata e comunque priva di `dormant`.
+- *Mantenere le 4 categorie A/B/C/D così come sono* — scartata: sono per **età in giorni**, non allineate alla terminologia di flush dell'outline.
+**Decisione:** usare la parte **Raw Data** del dataset **TeaLeafAgeQuality** (Mendeley, CC BY 4.0, ~2208 immagini, organizzato per età), con una mappatura **a 2 classi** (lo step "coarse: active flush vs not" dell'outline §5.2):
+- `new_flush` = Categoria A (1-2 gg) + B (2-4 gg) → 1177 immagini
+- `mature_leaf` = Categoria C (4-7 gg) + D (7+ gg, "Not for Tea") → 1031 immagini
+
+Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`); si versionano solo la struttura e il `README.md` con le istruzioni. Lo `.zip` di origine è stato eliminato dopo l'estrazione per non duplicare ~4 GB.
+**Motivazione:** fonte pubblica e coerente col dominio; l'organizzazione folder-per-classe è ideale per il transfer learning; le 2 classi sono bilanciate (~53/47%) e corrispondono al primo passo previsto dall'outline. La classe `dormant` è rimandata: non è presente in questo dataset e andrà raccolta da iNaturalist (come già annotato nel README).
+**Conseguenze/rischi:** il dataset misura **età/qualità** della foglia, un *proxy* dello stadio botanico di flush; manca `dormant`, quindi il classificatore parte a 2 classi; chi clona il repo deve ri-estrarre le immagini seguendo `data/raw/flush_stages/README.md` (non sono versionate).
+
 ## [2026-07-09] Versionare il dataset pubblico e gli artefatti di risultato (non i pesi)
 
 **Contesto:** per l'esame serve mostrare i **risultati** del training (metriche, curve, batch di esempio) e permettere la riproducibilità. Inizialmente `.gitignore` escludeva tutta la cartella `data/` e `models/`; ma il dataset è pubblico e piccolo, e i risultati sono proprio ciò che la docente vuole vedere.

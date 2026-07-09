@@ -18,6 +18,15 @@ venv/
 # so the results are reproducible and visible in the repo. If a future dataset is
 # heavy, ignore that specific subfolder here instead of the whole data/ tree.
 
+# Heavy second dataset — TeaLeafAgeQuality (~4 GB, CC BY 4.0). Workstream B.
+# Too large for git: kept only locally. How to obtain/prepare it is documented
+# in data/raw/flush_stages/README.md. The folder structure and README stay
+# versioned; the images themselves do not.
+*.zip
+/data/raw/flush_stages/**/*.jpg
+/data/raw/flush_stages/**/*.jpeg
+/data/raw/flush_stages/**/*.png
+
 # Model outputs: training result artifacts (metrics, plots, sample batches) ARE
 # versioned to show results. Only the heavy binaries stay out (regenerable, bloat git).
 runs/

@@ -1,19 +1,50 @@
-# flush_stages — Training Data for Workstream B
+# flush_stages — Dati per il Workstream B (classificatore flush-stage)
 
-Place tea plant images here, one subfolder per class:
+Immagini di foglie di tè per stadio, usate per addestrare il classificatore
+descritto nell'outline §5. **Le immagini NON sono versionate** (dataset pesante,
+~2200 file): git tiene solo questa struttura e il README. Vanno ri-estratte in
+locale seguendo le istruzioni sotto.
+
+## Struttura (2 classi)
 
 ```
 flush_stages/
-├── dormant/        # No visible new shoots (Months 0-2)
-├── new_flush/      # Bright green, 2-3 tender leaves + bud (Months 3-4) ⚠️ HIGH RISK
-└── mature_leaf/    # Dark, fully expanded leaves (Months 5+)
+├── new_flush/     # germogli teneri (foglia giovane)      → 1177 immagini
+└── mature_leaf/   # foglia matura / non più adatta al tè  → 1031 immagini
 ```
 
-## Target counts
-- ≥150 images per class before training (see NEXT_STEPS_WORKSTREAM_B.md)
+Scelta a **2 classi** (step "coarse: active flush vs not" dell'outline §5.2).
+La terza classe `dormant` (nessun germoglio) non è presente in questo dataset
+e sarà aggiunta in seguito da ricerche su iNaturalist.
 
-## Data sources (fastest to slowest)
-1. **Mendeley** — TeaLeafAgeQuality dataset (2,208 images, CC BY 4.0)
-   Map: T1+T2 → new_flush/, T3+T4 → mature_leaf/
-   Add dormant from iNaturalist searches.
-2. **Partner farm (Peru)** — preferred for production; contact Nenad for access.
+## Fonte dei dati
+
+**TeaLeafAgeQuality — Age-Stratified Tea Leaf Quality Classification Dataset**
+(Mendeley Data, licenza **CC BY 4.0**). Parte usata: `TeaLeafAgeQuality(Raw Data)`,
+2208 immagini organizzate per età della foglia in 4 categorie.
+
+## Mappatura categoria → classe
+
+| Categoria originale (età) | Classe | N. |
+|---|---|---|
+| Catagory A (1-2 giorni) | `new_flush`   | 562  |
+| Category B (2-4 giorni) | `new_flush`   | 615  |
+| Category C (4-7 giorni) | `mature_leaf` | 508  |
+| Category D (7+ giorni, "Not for Tea") | `mature_leaf` | 523 |
+
+> Nota: il dataset è per **età/qualità** della foglia, un *proxy* dello stadio
+> di flush. La mappatura giovane→`new_flush`, vecchia→`mature_leaf` è coerente
+> con il primo passo dell'outline.
+
+## Come ri-estrarre le immagini (chi clona il repo)
+
+1. Scaricare lo zip `TeaLeafAgeQuality...Dataset.zip` da Mendeley Data.
+2. Estrarre **solo** la parte `Raw Data`, applicando la mappatura sopra:
+   A+B → `new_flush/`, C+D → `mature_leaf/`. Prefissare i file con la lettera
+   della categoria (`A_`, `B_`, …) per evitare collisioni di nome.
+3. Lo zip non va tenuto nel repo (è in `.gitignore`).
+
+## Fonte alternativa (produzione)
+
+Cattura diretta in campo — preferibile per il modello di produzione; non usata
+in questo pilot per vincoli di tempo/accesso.
