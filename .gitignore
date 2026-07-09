@@ -28,3 +28,7 @@ runs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Private layer — NEVER pushed. Real names, company docs, supervisor chats.
+# This is the local-only side of the "one project, two layers" setup.
+_private/

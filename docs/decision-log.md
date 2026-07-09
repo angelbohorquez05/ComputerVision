@@ -7,6 +7,17 @@
 
 ---
 
+## [2026-07-09] Separazione in due livelli: repo anonimizzato + livello privato locale
+
+**Contesto:** il tirocinio prosegue nel tempo e produce anche materiale **riservato** (documenti aziendali, note e conversazioni con il supervisore, versioni con nomi reali). Serviva un unico spazio di lavoro che valga sia per l'esame sia per la continuazione del tirocinio, senza che il materiale riservato finisca mai nel repository condiviso.
+**Alternative considerate:**
+- *Due repository separati (uno reale privato, uno anonimizzato)* — scartato: duplica il lavoro e disperde la storia; facile disallineare i due.
+- *Rendere l'intero repo privato su GitHub e inserirvi i dati reali* — scartato: se poi il repo viene condiviso (es. con la docente) il materiale riservato e i nomi reali sarebbero comunque visibili.
+- *Tenere il materiale riservato in una cartella fuori dal progetto* — scartato: si perde l'unità del progetto (l'obiettivo è "un solo progetto").
+**Decisione:** un **unico progetto a due livelli**. Il livello pubblico/condivisibile è il repo **TINAT anonimizzato** (ciò che si committa e si pubblica: artefatto dell'esame). Il livello privato è la cartella locale **`_private/`**, inserita in `.gitignore` e quindi **mai versionata né pubblicata**; contiene il materiale reale del tirocinio. Verificato con `git check-ignore` e `git status` che `_private/` non è tracciata.
+**Motivazione:** un solo posto in cui lavorare, la storia dei commit resta pulita e anonima (l'artefatto per la docente), e i nomi reali/materiale aziendale non lasciano mai la macchina. Coerente con la regola di anonimizzazione già adottata per il repo.
+**Conseguenze/rischi:** la separazione dipende dalla disciplina nel mettere il materiale reale dentro `_private/` e nell'anonimizzare prima di spostare qualcosa verso il repo. Prima di ogni commit resta valido il controllo (`grep`) sui nomi reali. Nota operativa: il repo va tenuto fuori da cartelle sincronizzate (OneDrive) per non rischiare la corruzione di `.git`.
+
 ## [2026-07-09] Strategia di branching: feature-branch + Pull Request (GitHub Flow)
 
 **Contesto:** finora i commit sono andati direttamente su `main` (accettabile per l'avvio di un progetto individuale). Ora che esiste una CI che gira sulle Pull Request, conviene adottare un flusso che mostri esplicitamente il ciclo DevOps-Agile: sviluppo su branch, revisione, merge controllato.
