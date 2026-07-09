@@ -7,6 +7,17 @@
 
 ---
 
+## [2026-07-09] Riscrittura della cronologia per rimuovere riferimenti reali trapelati
+
+**Contesto:** durante la migrazione, alcuni riferimenti reali (nome originale del progetto, colleghi, azienda) erano rimasti in file e messaggi di commit di alcune versioni già pubblicate sul repository pubblico, in violazione della regola di anonimizzazione. L'anonimizzazione era stata fatta sui file, ma quella correzione non era arrivata al remoto (la sua configurazione si era persa) e le versioni vecchie restavano nella cronologia e nelle Pull Request.
+**Alternative considerate:**
+- *Un nuovo commit che ripulisce solo i file attuali* — scartato: lascia i riferimenti reali visibili nella cronologia e nei diff delle PR.
+- *Cancellare e ricreare il repository da una copia pulita* — è l'unica garanzia totale, ma scartato per ora: si perderebbero i metadati del repository; ripiegato su tenerlo privato come rete di sicurezza.
+- *Riscrivere la cronologia con `git filter-repo` + force-push* — scelto.
+**Decisione:** riscrivere l'intera cronologia con `git filter-repo` (tabella di sostituzioni testuali applicata a tutti i commit), force-push su `main`, cancellare la branch contaminata dal remoto e le branch *head* delle vecchie PR. Backup della cronologia precedente conservato localmente prima dell'operazione.
+**Motivazione:** rispettare la riservatezza del tirocinio (regola di anonimizzazione) senza rinunciare allo storico dei commit, che è l'artefatto di processo richiesto dal corso.
+**Conseguenze/rischi:** tutti gli hash dei commit cambiano (riscrittura completa). I commit vecchi possono restare raggiungibili tramite i ref delle PR (`refs/pull/*`) finché il repository non viene ricreato: mitigato mantenendo il repository **privato**. Come sempre, ciò che è stato pubblico può essere già stato indicizzato o clonato: la pulizia riduce l'esposizione futura, non cancella il passato.
+
 ## [2026-07-09] Rimozione di Docker (semplificazione del repository)
 
 **Contesto:** il `Dockerfile` era stato aggiunto per la riproducibilità della demo (vedi la voce "Containerizzazione con Docker" più sotto). Rivalutando lo scope, il container non viene usato nel flusso di lavoro né nella presentazione: la demo gira già con `python -m src.demo`, e la riproducibilità dell'ambiente è già coperta da `requirements.txt` con versioni pinnate + la CI su Python 3.10.
