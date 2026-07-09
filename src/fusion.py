@@ -11,7 +11,7 @@ fuses the raw predictions → Observations are stored in a database.
 Pipeline:
     [YOLOv8-n insect detector]  → list[InsectDetection]
     [Plant zone segmenter]       → list[ZoneDetection]
-    [Flush-stage classifier]     → str  (dormant | new_flush | mature_leaf)
+    [Flush-stage classifier]     → str  (new_flush | mature_leaf)
                                     ↓
                             FusionEngine.fuse_frame()
                                     ↓
@@ -104,7 +104,10 @@ class FlushClassifier:
     FusionEngine can still run in demo mode with a hardcoded stage.
     """
 
-    CLASSES = ["dormant", "new_flush", "mature_leaf"]
+    # Trained on 2 classes for now; ``dormant`` is deferred until a dedicated
+    # dataset exists (see data/raw/flush_stages/README.md and the decision-log).
+    # The order MUST match the label order used in src/train_flush_stage.py.
+    CLASSES = ["new_flush", "mature_leaf"]
     _MODEL_PATH = _MODELS_DIR / "flush_stage.tflite"
 
     def __init__(self):

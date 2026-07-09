@@ -35,6 +35,8 @@ runs/
 *.onnx
 *.tflite
 *.pkl
+# onnx2tf output (saved_model + reports), regenerable
+models/flush_stage_tf/
 
 # System / IDE
 .DS_Store

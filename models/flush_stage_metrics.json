@@ -1,0 +1,20 @@
+{
+  "classes": [
+    "new_flush",
+    "mature_leaf"
+  ],
+  "n_train": 1545,
+  "n_val": 331,
+  "n_test": 332,
+  "report": "              precision    recall  f1-score   support\n\n   new_flush      0.960     0.808     0.877       177\n mature_leaf      0.814     0.961     0.882       155\n\n    accuracy                          0.880       332\n   macro avg      0.887     0.885     0.879       332\nweighted avg      0.892     0.880     0.879       332\n",
+  "confusion_matrix": [
+    [
+      143,
+      34
+    ],
+    [
+      6,
+      149
+    ]
+  ]
+}
