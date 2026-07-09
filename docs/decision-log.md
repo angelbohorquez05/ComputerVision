@@ -5,6 +5,16 @@
 
 ---
 
+## [2026-07-09] Strategia di branching: feature-branch + Pull Request (GitHub Flow)
+
+**Contesto:** finora i commit sono andati direttamente su `main` (accettabile per l'avvio di un progetto individuale). Ora che esiste una CI che gira sulle Pull Request, conviene adottare un flusso che mostri esplicitamente il ciclo DevOps-Agile: sviluppo su branch, revisione, merge controllato.
+**Alternative considerate:**
+- *Continuare a committare direttamente su `main`* — scartato d'ora in poi: semplice, ma non mostra il flusso di revisione né sfrutta la CI come gate prima del merge.
+- *Git-flow completo (branch `develop`, `release/*`, `hotfix/*`)* — scartato: pensato per team e rilasci versionati, è complessità eccessiva per un progetto individuale d'esame.
+**Decisione:** adottare un **GitHub Flow leggero**: `main` sempre "verde" e deployabile; ogni modifica su un branch a vita breve con prefisso di tipo (`feature/`, `fix/`, `docs/`, `ci/`, `build/`); merge su `main` tramite **Pull Request** con CI verde. Aggiunta una `.github/pull_request_template.md` per strutturare ogni PR (cosa cambia, test verdi, anonimizzazione verificata, decision-log aggiornato).
+**Motivazione:** rende visibile e tracciabile il processo (il PR è un artefatto che la docente può rivedere), usa la CI come cancello di qualità e resta semplice per un singolo sviluppatore. Questa stessa modifica viene introdotta tramite il flusso che documenta.
+**Conseguenze/rischi:** con un solo sviluppatore la revisione è auto-revisione (nessun secondo revisore); è un limite consapevole. I commit iniziali su `main` restano nello storico come avvio onesto del progetto.
+
 ## [2026-07-09] Containerizzazione con Docker (immagine slim per la demo)
 
 **Contesto:** in un corso DevOps la riproducibilità dell'ambiente è centrale: il progetto deve poter girare allo stesso modo su qualsiasi macchina, senza dipendere dal setup locale. Mancava un artefatto di packaging.
