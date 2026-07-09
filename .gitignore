@@ -11,11 +11,12 @@ __pycache__/
 venv/
 .venv/
 
-# Dataset (not versioned)
-data/*
-!data/.gitkeep
+# Dataset — public (Roboflow/Mendeley, CC BY 4.0) and small: versioned on purpose
+# so the results are reproducible and visible in the repo. If a future dataset is
+# heavy, ignore that specific subfolder here instead of the whole data/ tree.
 
-# Model weights / outputs
+# Model outputs: training result artifacts (metrics, plots, sample batches) ARE
+# versioned to show results. Only the heavy binaries stay out (regenerable, bloat git).
 runs/
 *.pt
 *.pth
