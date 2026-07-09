@@ -7,6 +7,17 @@
 
 ---
 
+## [2026-07-09] Classificatore flush-stage: 2 classi ora, MobileNetV2, export via onnx2tf
+
+**Contesto:** la dimensione **WHEN** della metrica ha bisogno di un classificatore dello stadio di flush. Senza, il `FusionEngine` usa uno stadio fisso (fallback). Il dataset pubblico disponibile (TeaLeafAgeQuality, Mendeley, CC BY 4.0) copre l'età/qualità della foglia, mappabile su 2 stadi (`new_flush`, `mature_leaf`), ma non contiene `dormant`.
+**Alternative considerate:**
+- *Rimandare l'addestramento finché non si cura un dataset `dormant` (iNaturalist) per 3 classi* — scartato per ora: ritarderebbe l'intera dimensione WHEN, e `dormant` è lo stadio a **basso** rischio; la classe che conta (alto rischio Helopeltis) è `new_flush`, già coperta.
+- *Addestrare in Keras ed esportare TFLite in modo nativo* — scartato: introdurrebbe un secondo framework di ML (il progetto usa già PyTorch per il detector YOLOv8).
+- *2 classi ora, in PyTorch, coerente con lo scaffold del notebook 02* — scelto.
+**Decisione:** addestrare **MobileNetV2** (transfer learning da ImageNet, 224×224, normalizzazione ImageNet) con una testa a **2 classi** `[new_flush, mature_leaf]`; esportare PyTorch → ONNX → TFLite con **onnx2tf**; integrare in `FlushClassifier` (ridotto a 2 classi). Codice riproducibile in `src/train_flush_stage.py`; `dormant` resta uno stadio noto (in `who_where_when.py`) ma non ancora classificabile.
+**Motivazione:** sblocca WHEN in modo onesto e incrementale, coprendo subito la classe ad alto rischio, senza dipendere da una raccolta dati aggiuntiva né da un secondo framework.
+**Conseguenze/rischi:** il modello non distingue `dormant` (andrà aggiunto quando esisterà il dataset). L'export TFLite dipende dalla catena `onnx2tf` (fragile ma verificata end-to-end: I/O NHWC 1×224×224×3 → 2 logit, allineato al preprocessing di `FlushClassifier.predict`). I pesi (`.pt`, `.onnx`, `.tflite`) non sono versionati (vedi `.gitignore`): si rigenerano con lo script.
+
 ## [2026-07-09] Riscrittura della cronologia per rimuovere riferimenti reali trapelati
 
 **Contesto:** durante la migrazione, alcuni riferimenti reali (nome originale del progetto, colleghi, azienda) erano rimasti in file e messaggi di commit di alcune versioni già pubblicate sul repository pubblico, in violazione della regola di anonimizzazione. L'anonimizzazione era stata fatta sui file, ma quella correzione non era arrivata al remoto (la sua configurazione si era persa) e le versioni vecchie restavano nella cronologia e nelle Pull Request.
