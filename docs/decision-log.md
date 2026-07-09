@@ -5,6 +5,17 @@
 
 ---
 
+## [2026-07-09] Containerizzazione con Docker (immagine slim per la demo)
+
+**Contesto:** in un corso DevOps la riproducibilità dell'ambiente è centrale: il progetto deve poter girare allo stesso modo su qualsiasi macchina, senza dipendere dal setup locale. Mancava un artefatto di packaging.
+**Alternative considerate:**
+- *Nessun Docker, solo istruzioni di setup nel README* — scartato: il README aiuta ma non garantisce un ambiente identico e riproducibile.
+- *Immagine Docker che installa tutto `requirements.txt` (torch, tensorflow, ultralytics)* — scartato: immagine multi-GB, build lenta; la demo e la logica di fusione usano solo la libreria standard di Python, quindi lo stack ML completo non serve per eseguirla.
+- *Docker Compose multi-servizio* — scartato: non c'è ancora un secondo servizio (database, API); sarebbe complessità non giustificata.
+**Decisione:** aggiungere un `Dockerfile` basato su `python:3.10-slim` che copia il progetto ed esegue la demo end-to-end (`python -m src.demo`) come comando predefinito, più un `.dockerignore` per mantenere l'immagine piccola (esclude `.git`, notebook, docs, dataset, ambienti).
+**Motivazione:** fornisce un pacchetto riproducibile e verificabile (`docker build` + `docker run` mostrano la pipeline che gira) restando leggero e coerente con la scelta fatta per la CI. Lo stesso Python 3.10 della CI e del README.
+**Conseguenze/rischi:** l'immagine esegue la demo/logica pura, non il training né l'inferenza reale con i pesi YOLOv8 (che richiederebbero lo stack ML pesante e i pesi del modello, non versionati). È un limite consapevole e documentato: per l'inferenza reale servirà un'immagine dedicata che installi `requirements.txt`.
+
 ## [2026-07-09] Integrazione continua (CI) con GitHub Actions
 
 **Contesto:** il corso è DevOps-Agile e il repository ha già una suite di test (`pytest`, 10 casi), ma nulla li esegue in automatico: i test vengono lanciati solo a mano. Manca l'artefatto DevOps più tipico, la *continuous integration*.

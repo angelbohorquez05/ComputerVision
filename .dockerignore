@@ -1,0 +1,17 @@
+# Keep the image small and clean: only ship code needed to run the demo.
+.git
+.github
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Notebooks, docs and local dataset are not needed at runtime.
+notebooks/
+docs/
+data/
+
+# Virtual environments and IDE files.
+venv/
+.venv/
+.vscode/
+.idea/
