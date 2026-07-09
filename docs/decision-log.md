@@ -7,6 +7,16 @@
 
 ---
 
+## [2026-07-09] Versionare il dataset pubblico e gli artefatti di risultato (non i pesi)
+
+**Contesto:** per l'esame serve mostrare i **risultati** del training (metriche, curve, batch di esempio) e permettere la riproducibilità. Inizialmente `.gitignore` escludeva tutta la cartella `data/` e `models/`; ma il dataset è pubblico e piccolo, e i risultati sono proprio ciò che la docente vuole vedere.
+**Alternative considerate:**
+- *Non versionare nulla e scaricare tutto via script* — scartato: i risultati non sarebbero visibili nel repo, e per un dataset pubblico da ~5 MB la complessità non si giustifica.
+- *Versionare anche i pesi del modello (`*.pt`, `*.onnx`, `*.tflite`)* — scartato: binari pesanti (47 MB i soli `.pt`), rigenerabili dal training, gonfiano git senza valore di processo.
+**Decisione:** versionare **il dataset pubblico** (`data/`, ~5 MB, Roboflow CC BY 4.0) e **gli artefatti di risultato** del training (`models/helopeltis_phase1/`: `results.csv`, `args.yaml`, `labels.jpg`, `train_batch*.jpg`, ~1.2 MB). Restano ignorati solo i binari pesanti (`*.pt`/`*.onnx`/`*.tflite`, `runs/`).
+**Motivazione:** i risultati diventano ispezionabili e riproducibili direttamente dal repository (evidenza di processo per l'esame), mantenendo git leggero. Dati e immagini sono pubblici (CC BY 4.0), quindi nessun problema di riservatezza.
+**Conseguenze/rischi:** se in futuro si aggiungono dataset pesanti (es. il set di flush di Mendeley con migliaia di immagini) va ignorata quella specifica sottocartella. Gli `args.yaml` di Ultralytics contengono path assoluti locali (artefatti autentici del run), non riservati.
+
 ## [2026-07-09] Separazione in due livelli: repo anonimizzato + livello privato locale
 
 **Contesto:** il tirocinio prosegue nel tempo e produce anche materiale **riservato** (documenti aziendali, note e conversazioni con il supervisore, versioni con nomi reali). Serviva un unico spazio di lavoro che valga sia per l'esame sia per la continuazione del tirocinio, senza che il materiale riservato finisca mai nel repository condiviso.

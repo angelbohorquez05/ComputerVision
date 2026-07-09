@@ -58,7 +58,7 @@ Il container usa un'immagine `python:3.10-slim` ed esegue `python -m src.demo` (
 - **Composizione:** ~483 immagini annotate con *bounding box* (split 80/10/10 train/val/test), classe singola `Helopeltis spp.`.
 - **Perché:** è pubblico, annotato in formato detection e coerente con il target, quindi permette di lavorare fin da subito senza dati proprietari.
 - **Qualità/limiti dei dati:** immagini da internet (illuminazione, sfondi e angolazioni vari), soprattutto insetti adulti su foglie. Le immagini reali dal campo non sono ancora disponibili (previste tra qualche mese): c'è quindi un *domain gap* da validare.
-- I dati non sono versionati nel repository (vedi `.gitignore`): vanno scaricati localmente in `data/`.
+- **Versionamento:** essendo un dataset pubblico (CC BY 4.0) e leggero (~5 MB), è versionato nel repository sotto `data/`, così i risultati sono riproducibili e ispezionabili. Restano fuori da git solo i binari pesanti dei modelli (pesi `*.pt`, export `*.onnx`/`*.tflite`), rigenerabili dal training (vedi `.gitignore`).
 
 ## Struttura
 
@@ -70,7 +70,8 @@ TINAT/
 │   └── demo.py            demo end-to-end su dati sintetici
 ├── tests/                test con pytest
 ├── notebooks/            fine-tuning del detector (01) e classificatore di stadio (02)
-├── data/                 dataset locale (non versionato)
+├── data/                 dataset pubblico versionato (~5 MB)
+├── models/               artefatti dei risultati del training (metriche, plot); pesi esclusi
 ├── docs/                 documentazione, model card e log delle decisioni
 ├── requirements.txt
 └── pytest.ini
