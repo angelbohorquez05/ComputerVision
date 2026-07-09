@@ -112,7 +112,7 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 **Stato onesto del progetto**
 
 - **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (10 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
-- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set (recall di `new_flush` 0.81 — da migliorare, è la classe ad alto rischio). Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
+- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~86% sul test set (recall di `new_flush` 0.79 — da migliorare, è la classe ad alto rischio). Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
 - **Non ancora integrato nel repo:** l'inferenza reale con i pesi YOLOv8 (i pesi sono fuori da git, documentati nella model card). È il prossimo passo per chiudere il ciclo su dati reali.
 
 ## Ulteriori informazioni

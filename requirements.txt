@@ -4,7 +4,10 @@ ultralytics>=8.0.0        # YOLOv8 fine-tuning and inference
 torch>=2.0.0              # CPU build
 torchvision>=0.15.0
 onnxruntime>=1.13.0       # ONNX inference (fusion layer)
-tensorflow>=2.13.0        # TFLite export for mobile deployment
+onnx==1.17.0              # PyTorch->ONNX export; pinned — newer onnx needs an ml_dtypes that clashes with TensorFlow
+tensorflow>=2.13.0        # TFLite runtime (loads flush_stage.tflite)
+# Note: the ONNX->TFLite conversion uses `onnx2tf`, installed separately (its
+# ml_dtypes/protobuf pins conflict with TensorFlow, so it is NOT listed here).
 Pillow>=10.0.0
 numpy>=1.24.0
 pandas>=2.0.0

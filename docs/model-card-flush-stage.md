@@ -23,14 +23,14 @@ un fallback esplicito.
 
 | Classe | Precision | Recall | F1 | Support |
 |---|---|---|---|---|
-| `new_flush` | 0.960 | **0.808** | 0.877 | 177 |
-| `mature_leaf` | 0.814 | 0.961 | 0.882 | 155 |
-| **Accuracy** | | **0.880** | | 332 |
+| `new_flush` | 0.946 | **0.791** | 0.862 | 177 |
+| `mature_leaf` | 0.799 | 0.948 | 0.867 | 155 |
+| **Accuracy** | | **0.864** | | 332 |
 
-Matrice di confusione (righe = vero `[new_flush, mature_leaf]`): `[[143, 34], [6, 149]]`.
+Matrice di confusione (righe = vero `[new_flush, mature_leaf]`): `[[140, 37], [8, 147]]`.
 
-**Interpretazione (con cautela):** l'accuratezza globale è ~88%, ma il **recall di
-`new_flush` (0.81)** è sotto l'obiettivo di 0.85 per la classe ad alto rischio: 34
+**Interpretazione (con cautela):** l'accuratezza globale è ~86%, ma il **recall di
+`new_flush` (0.79)** è sotto l'obiettivo di 0.85 per la classe ad alto rischio: 37
 germogli teneri sono stati classificati come foglia matura (falsi negativi, il tipo
 di errore più costoso). Migliorabile pesando di più `new_flush` nella loss o
 abbassando la soglia di decisione a inferenza.
@@ -64,7 +64,8 @@ Non versionati (vedi `.gitignore`); si rigenerano con lo script:
 - `models/flush_stage.onnx` — grafo ONNX (1×3×224×224).
 - `models/flush_stage.tflite` — modello TFLite (NHWC 1×224×224×3 → 2 logit), convertito con `onnx2tf`.
 - `models/flush_stage_metrics.json` — riepilogo delle metriche.
-- `models/flush_stage_predictions.png`, `models/flush_stage_confusion.png` — visualizzazioni dei risultati sul test set (rigenerabili con `python -m src.viz_flush_stage`).
+
+I risultati (report, matrice di confusione, griglia di predizioni) si visualizzano **inline nel notebook** [`notebooks/02_flush_stage_classifier.ipynb`](../notebooks/02_flush_stage_classifier.ipynb), senza salvare immagini.
 
 ## Integrazione
 
