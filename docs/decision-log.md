@@ -3,9 +3,19 @@
 > Registro delle decisioni tecniche e organizzative del progetto.
 > Regola d'oro del corso: *"Se una decisione è importante, deve essere rintracciabile in un documento o in un artefatto nel repository."*
 
-> Nota di lettura: le decisioni del **lavoro reale** (architettura, dati, metrica) risalgono a maggio-giugno 2026, quando il progetto è stato sviluppato durante il tirocinio. Le decisioni di **organizzazione del repository e DevOps** (repo "specchio" anonimizzato, CI, Docker, flusso Git) sono di luglio 2026, quando il lavoro è stato riportato in questo repository pubblico e anonimizzato. Le date indicano quando la decisione è stata presa, non quando è stata scritta qui.
+> Nota di lettura: le decisioni del **lavoro reale** (architettura, dati, metrica) risalgono a maggio-giugno 2026, quando il progetto è stato sviluppato durante il tirocinio. Le decisioni di **organizzazione del repository e DevOps** (repo "specchio" anonimizzato, CI, flusso Git) sono di luglio 2026, quando il lavoro è stato riportato in questo repository pubblico e anonimizzato. Le date indicano quando la decisione è stata presa, non quando è stata scritta qui.
 
 ---
+
+## [2026-07-09] Rimozione di Docker (semplificazione del repository)
+
+**Contesto:** il `Dockerfile` era stato aggiunto per la riproducibilità della demo (vedi la voce "Containerizzazione con Docker" più sotto). Rivalutando lo scope, il container non viene usato nel flusso di lavoro né nella presentazione: la demo gira già con `python -m src.demo`, e la riproducibilità dell'ambiente è già coperta da `requirements.txt` con versioni pinnate + la CI su Python 3.10.
+**Alternative considerate:**
+- *Tenere il `Dockerfile` anche se non usato* — scartato: un artefatto DevOps mai eseguito nel processo reale è "copertura di facciata"; il corso premia l'onestà del processo (onestà > copertura finta).
+- *Trasformarlo in un'immagine per l'inferenza reale (stack ML completo + pesi)* — scartato: fuori scope adesso; richiederebbe un'immagine multi-GB e i pesi non versionati.
+**Decisione:** rimuovere `Dockerfile` e `.dockerignore` dal repository e la relativa sezione dal README. La voce originale qui sotto resta come storico della decisione.
+**Motivazione:** mantenere il repo minimale e onesto — solo artefatti realmente usati — senza perdere riproducibilità (garantita da `requirements.txt` pinnato + CI).
+**Conseguenze/rischi:** se in futuro servirà un packaging containerizzato (es. deploy dell'inferenza reale), si ripartirà da un'immagine dedicata. La containerizzazione resta comunque documentata nello storico dei commit e in questa voce.
 
 ## [2026-07-09] Dataset e mappatura delle classi per il classificatore flush-stage (Workstream B)
 

@@ -41,17 +41,6 @@ Per lanciare i test:
 pytest
 ```
 
-### Esecuzione con Docker (opzionale)
-
-In alternativa, la demo end-to-end si può eseguire in un container riproducibile, senza installare nulla in locale (serve solo Docker):
-
-```bash
-docker build -t tinat .
-docker run --rm tinat
-```
-
-Il container usa un'immagine `python:3.10-slim` ed esegue `python -m src.demo` (detector simulato → fusione → export JSON). Lo stack ML pesante non è incluso: l'immagine serve a mostrare la pipeline, non a fare inferenza reale (vedi [decision-log](docs/decision-log.md)).
-
 ## Dataset
 
 - **Origine:** dataset pubblico su **Roboflow Universe** (licenza **CC BY 4.0**), con immagini di *Helopeltis* raccolte da fonti pubbliche (GBIF, iNaturalist, letteratura sui parassiti del tè).
@@ -122,7 +111,7 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 
 **Stato onesto del progetto**
 
-- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (10 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo` o via Docker.
+- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (10 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
 - **Non ancora integrato nel repo:** l'inferenza reale con i pesi YOLOv8 (i pesi sono fuori da git, documentati nella model card) e il classificatore di stadio (`FlushClassifier` non caricato → usa il fallback). Sono i prossimi passi per chiudere il ciclo su dati reali.
 
 ## Ulteriori informazioni
