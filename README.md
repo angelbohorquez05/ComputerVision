@@ -105,12 +105,28 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 - **Livello di fusione:** combina detection, zona della pianta e stadio in un unico record `Observation`, con aggregazione temporale su più frame.
 - **Validazione su foto reali dal campo** quando disponibili → fine-tuning con dati di dominio.
 
-## Limiti e note
+## Rischi, assunzioni e limiti
+
+**Assunzioni**
+
+- Le immagini pubbliche da internet sono un *proxy* accettabile per iniziare, in attesa delle foto reali dal campo (previste tra qualche mese).
+- Lo stadio di flush (WHEN) è assunto come `new_flush` quando il classificatore dedicato non è disponibile (fallback esplicito nella demo).
+- Il deploy di destinazione è offline su CPU/mobile (da cui l'export ONNX/TFLite).
+
+**Rischi**
 
 - **Domain gap:** il modello è addestrato su foto da internet, non da campo reale: le metriche alte non garantiscono le stesse prestazioni sul campo.
 - **Classe singola:** rileva Helopeltis, ma non lo distingue ancora da altri Miridae simili.
 - **Frame singolo:** l'inferenza è per-immagine; la stabilità su frame sfocati/parziali dipende dall'aggregazione temporale (roadmap).
 
-## Decisioni di progetto
+**Stato onesto del progetto**
 
-Le scelte tecniche e organizzative sono tracciate in [`docs/decision-log.md`](docs/decision-log.md).
+- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (10 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo` o via Docker.
+- **Non ancora integrato nel repo:** l'inferenza reale con i pesi YOLOv8 (i pesi sono fuori da git, documentati nella model card) e il classificatore di stadio (`FlushClassifier` non caricato → usa il fallback). Sono i prossimi passi per chiudere il ciclo su dati reali.
+
+## Ulteriori informazioni
+
+- **Decisioni di progetto:** tracciate in [`docs/decision-log.md`](docs/decision-log.md) (contesto, alternative, motivazione di ogni scelta).
+- **Model card:** metriche, training, limiti e considerazioni etiche in [`docs/model-card.md`](docs/model-card.md).
+- **Notebook:** fine-tuning del detector e classificatore di stadio in [`notebooks/`](notebooks/).
+- **CI:** stato dei test a ogni commit nella tab *Actions* del repository (badge in cima a questo README).
