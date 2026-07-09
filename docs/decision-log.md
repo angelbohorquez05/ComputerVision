@@ -7,6 +7,17 @@
 
 ---
 
+## [2026-07-09] Soglia di decisione per alzare il recall di `new_flush`
+
+**Contesto:** con la classificazione ad `argmax` (soglia 0.5) il recall di `new_flush` era 0.79, sotto l'obiettivo di 0.85. `new_flush` è la classe **ad alto rischio** (mancare un germoglio tenero — falso negativo — è l'errore più costoso): i costi degli errori sono asimmetrici.
+**Alternative considerate:**
+- *Re-training con loss pesata verso `new_flush`* — valido, ma ~40 min per iterazione su CPU e meno controllabile del punto operativo.
+- *Raccogliere più dati* — fuori scope adesso.
+- *Abbassare la soglia di decisione su `new_flush`, tarata sul validation set* — scelto.
+**Decisione:** `FlushClassifier` predice `new_flush` quando `P(new_flush) >= 0.35` (`NEW_FLUSH_THRESHOLD`), soglia scelta sul *validation set* (non sul test). Con una futura terza classe il wrapper ricade su `argmax`.
+**Motivazione:** costi asimmetrici; la soglia recupera ~7 punti di recall sulla classe critica (0.79 → 0.86) **senza re-training**, e alza pure l'accuratezza globale (0.864 → 0.883).
+**Conseguenze/rischi:** precision di `new_flush` leggermente più bassa (più `mature_leaf` segnalati come `new_flush`), accettabile per una classe ad alto rischio. Il punto operativo va rivalutato se il modello viene ri-addestrato o esteso a 3 classi.
+
 ## [2026-07-09] Classificatore flush-stage: 2 classi ora, MobileNetV2, export via onnx2tf
 
 **Contesto:** la dimensione **WHEN** della metrica ha bisogno di un classificatore dello stadio di flush. Senza, il `FusionEngine` usa uno stadio fisso (fallback). Il dataset pubblico disponibile (TeaLeafAgeQuality, Mendeley, CC BY 4.0) copre l'età/qualità della foglia, mappabile su 2 stadi (`new_flush`, `mature_leaf`), ma non contiene `dormant`.

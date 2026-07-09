@@ -21,19 +21,26 @@ un fallback esplicito.
 
 ### Risultati sul test set (332 immagini, held-out, seed fisso)
 
+Punto operativo **deployato**: `FlushClassifier` usa una **soglia di decisione di 0.35**
+su `new_flush` (invece di argmax = 0.5), scelta sul *validation set* per alzare il
+recall della classe ad alto rischio (vedi decision-log).
+
 | Classe | Precision | Recall | F1 | Support |
 |---|---|---|---|---|
-| `new_flush` | 0.946 | **0.791** | 0.862 | 177 |
-| `mature_leaf` | 0.799 | 0.948 | 0.867 | 155 |
-| **Accuracy** | | **0.864** | | 332 |
+| `new_flush` | 0.916 | **0.859** | 0.886 | 177 |
+| `mature_leaf` | 0.849 | 0.910 | 0.879 | 155 |
+| **Accuracy** | | **0.883** | | 332 |
 
-Matrice di confusione (righe = vero `[new_flush, mature_leaf]`): `[[140, 37], [8, 147]]`.
+Matrice di confusione (righe = vero `[new_flush, mature_leaf]`): `[[152, 25], [14, 141]]`.
 
-**Interpretazione (con cautela):** l'accuratezza globale è ~86%, ma il **recall di
-`new_flush` (0.79)** è sotto l'obiettivo di 0.85 per la classe ad alto rischio: 37
-germogli teneri sono stati classificati come foglia matura (falsi negativi, il tipo
-di errore più costoso). Migliorabile pesando di più `new_flush` nella loss o
-abbassando la soglia di decisione a inferenza.
+Per riferimento, con **argmax puro** (soglia 0.5) il recall di `new_flush` era 0.791
+(accuratezza 0.864): la soglia recupera ~7 punti di recall sulla classe che conta,
+a fronte di poca precision persa.
+
+**Interpretazione (con cautela):** il **recall di `new_flush` (0.86)** supera ora
+l'obiettivo di 0.85. Resta comunque il tipo di errore più costoso (25 germogli teneri
+persi come foglia matura); migliorabile ulteriormente con più dati o re-training con
+loss pesata verso `new_flush`.
 
 ## Dataset di training
 
@@ -70,12 +77,14 @@ I risultati (report, matrice di confusione, griglia di predizioni) si visualizza
 ## Integrazione
 
 `FlushClassifier` carica `models/flush_stage.tflite` se presente e restituisce lo
-stadio via `argmax`. Il preprocessing del wrapper (normalizzazione ImageNet, NHWC)
-combacia con quello di training. Verificato con `python -m src.demo`.
+stadio applicando una **soglia di 0.35** su `new_flush` (`NEW_FLUSH_THRESHOLD`); con
+un'eventuale terza classe ricadrebbe su `argmax`. Il preprocessing del wrapper
+(normalizzazione ImageNet, NHWC) combacia con quello di training. Verificato con
+`python -m src.demo`.
 
 ## Limiti noti e prossimi passi
 
-- **Recall `new_flush` da migliorare** (classe ad alto rischio): re-training con loss pesata verso `new_flush` o soglia dedicata.
+- **Recall `new_flush`**: portato a **0.86** (> obiettivo 0.85) tramite la soglia di decisione; migliorabile ancora con più dati o re-training con loss pesata verso `new_flush`.
 - **Aggiungere `dormant`** quando esisterà un dataset (iNaturalist), passando a 3 classi (aggiornare anche `FlushClassifier.CLASSES`).
 - **Validazione su foto reali dal campo** quando disponibili.
 

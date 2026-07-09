@@ -1,5 +1,6 @@
 from src.fusion import (
     BBox,
+    FlushClassifier,
     FusionEngine,
     InsectDetection,
     ZoneDetection,
@@ -50,3 +51,11 @@ def test_sliding_window_suppresses_single_frame_hit():
     labels = {o.insect for o in stable}
     assert "Helopeltis spp." in labels
     assert "bees" not in labels
+
+
+def test_flush_threshold_favors_new_flush():
+    # The high-risk class new_flush wins whenever P(new_flush) >= 0.35, even when
+    # plain argmax would pick mature_leaf.
+    assert FlushClassifier._decide([-0.405, 0.0]) == "new_flush"   # P(new_flush)=0.40
+    assert FlushClassifier._decide([-1.386, 0.0]) == "mature_leaf"  # P(new_flush)=0.20
+    assert FlushClassifier._decide([2.0, 0.0]) == "new_flush"       # clear new_flush

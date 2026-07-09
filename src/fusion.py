@@ -108,6 +108,12 @@ class FlushClassifier:
     # dataset exists (see data/raw/flush_stages/README.md and the decision-log).
     # The order MUST match the label order used in src/train_flush_stage.py.
     CLASSES = ["new_flush", "mature_leaf"]
+
+    # Risk-weighted decision threshold for the high-risk class: predict
+    # ``new_flush`` when P(new_flush) >= this value instead of plain argmax (0.5).
+    # Missing a tender-shoot window is the costly error, so we trade a little
+    # precision for recall. Tuned on the validation split (see the model card).
+    NEW_FLUSH_THRESHOLD = 0.35
     _MODEL_PATH = _MODELS_DIR / "flush_stage.tflite"
 
     def __init__(self):
@@ -140,7 +146,24 @@ class FlushClassifier:
         self._interpreter.set_tensor(self._input_idx, tensor)
         self._interpreter.invoke()
         logits = self._interpreter.get_tensor(self._output_idx)[0]
-        return self.CLASSES[int(logits.argmax())]
+        return self._decide(logits)
+
+    @classmethod
+    def _decide(cls, logits) -> str:
+        """Map raw logits to a stage label.
+
+        For the 2-class model the high-risk class ``new_flush`` is predicted
+        whenever ``P(new_flush) >= NEW_FLUSH_THRESHOLD`` (not plain argmax). Once
+        a third class such as ``dormant`` is added, it falls back to argmax.
+        """
+        import numpy as np
+        logits = np.asarray(logits, dtype=float)
+        if len(cls.CLASSES) == 2 and "new_flush" in cls.CLASSES:
+            probs = np.exp(logits - logits.max())
+            probs /= probs.sum()
+            p_new = probs[cls.CLASSES.index("new_flush")]
+            return "new_flush" if p_new >= cls.NEW_FLUSH_THRESHOLD else "mature_leaf"
+        return cls.CLASSES[int(logits.argmax())]
 
 # Detections below this confidence are routed to the review queue instead of
 # being published as Observations. 0.65 is the Phase 2 review-queue threshold.
