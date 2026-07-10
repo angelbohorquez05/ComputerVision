@@ -156,14 +156,15 @@ class FlushClassifier:
         whenever ``P(new_flush) >= NEW_FLUSH_THRESHOLD`` (not plain argmax). Once
         a third class such as ``dormant`` is added, it falls back to argmax.
         """
-        import numpy as np
-        logits = np.asarray(logits, dtype=float)
+        import math
+        logits = [float(x) for x in logits]
         if len(cls.CLASSES) == 2 and "new_flush" in cls.CLASSES:
-            probs = np.exp(logits - logits.max())
-            probs /= probs.sum()
-            p_new = probs[cls.CLASSES.index("new_flush")]
+            m = max(logits)
+            exps = [math.exp(x - m) for x in logits]
+            total = sum(exps)
+            p_new = exps[cls.CLASSES.index("new_flush")] / total
             return "new_flush" if p_new >= cls.NEW_FLUSH_THRESHOLD else "mature_leaf"
-        return cls.CLASSES[int(logits.argmax())]
+        return cls.CLASSES[max(range(len(logits)), key=lambda i: logits[i])]
 
 # Detections below this confidence are routed to the review queue instead of
 # being published as Observations. 0.65 is the Phase 2 review-queue threshold.
