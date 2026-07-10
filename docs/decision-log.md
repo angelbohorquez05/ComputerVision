@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-10] La demo torna a essere stdlib-only (caricamento pigro del classificatore)
+
+**Contesto:** `demo.py` istanziava `FlushClassifier()` a livello di modulo. Da quando `models/flush_stage.tflite` esiste sul disco, quell'istanza importa TensorFlow all'avvio: ~12 secondi di caricamento e log informativi di oneDNN su `stderr`. Ma la demo gira su rilevamenti **sintetici**: non ha nessuna immagine da classificare, quindi chiama `resolve_stage()` senza argomenti e restituisce sempre lo stadio di fallback. Si caricava l'intero stack ML per non usarlo. In più, essendo il classificatore "disponibile", l'avviso di fallback non veniva stampato: la demo mostrava `Flush stage: new_flush` senza dire che era una costante e non una predizione.
+
+**Alternative considerate:**
+- *Silenziare i log di TensorFlow (`TF_CPP_MIN_LOG_LEVEL`, `TF_ENABLE_ONEDNN_OPTS=0`)* — scartato: nasconde il sintomo (i log) e lascia il problema (12 secondi di import inutile).
+- *Passare una vera immagine alla demo per usare davvero il classificatore* — scartato per ora: la demo è dichiaratamente su dati sintetici (`mock_insects`, `mock_zones`); introdurre un'immagine reale significherebbe versionarla e aggiungere una dipendenza da TensorFlow/Pillow al percorso dimostrativo.
+- *Costruire il classificatore solo quando c'è un'immagine da classificare* — scelto.
+
+**Decisione:** `_flush_clf` parte a `None` e viene costruito **al primo uso**, dentro `resolve_stage()`, solo quando arriva un'immagine. Senza immagine la funzione stampa esplicitamente `[demo] No image to classify — using hardcoded stage='new_flush'` e restituisce il fallback.
+
+**Motivazione:** `python -m src.demo` torna istantaneo e senza dipendenze pesanti, coerente con la scelta di una CI leggera (che installa solo `pytest` perché la logica di metrica e fusione usa solo la libreria standard). E la demo ora **dichiara** che quello stadio è un fallback: onestà dell'output, non solo della documentazione.
+
+**Conseguenze/rischi:** l'import di TensorFlow si sposta al primo `predict()` con immagine, quindi il costo di caricamento si paga lì (accettabile: è un percorso di inferenza reale, non una demo). Il caricamento pigro con `global` è adeguato a uno script a singolo thread; se in futuro la fusione girasse in un servizio concorrente, l'inizializzazione andrebbe resa esplicita e thread-safe.
+
 ## [2026-07-09] Soglia di decisione per alzare il recall di `new_flush`
 
 **Contesto:** con la classificazione ad `argmax` (soglia 0.5) il recall di `new_flush` era 0.79, sotto l'obiettivo di 0.85. `new_flush` è la classe **ad alto rischio** (mancare un germoglio tenero — falso negativo — è l'errore più costoso): i costi degli errori sono asimmetrici.

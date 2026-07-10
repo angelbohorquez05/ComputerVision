@@ -17,16 +17,27 @@ from datetime import datetime
 from src.who_where_when import FLUSH_STAGES
 from src.fusion import FusionEngine, FlushClassifier, InsectDetection, ZoneDetection, BBox
 
-_flush_clf = FlushClassifier()
 _FALLBACK_STAGE = "new_flush"
+
+# Built on first use: constructing it imports TensorFlow, which this demo
+# never needs when it runs on synthetic detections (no image to classify).
+_flush_clf = None
 
 
 def resolve_stage(image_rgb=None) -> str:
     """Return flush stage from classifier if available, else fallback constant."""
-    if image_rgb is not None and _flush_clf.available:
+    global _flush_clf
+
+    if image_rgb is None:
+        print(f"[demo] No image to classify — using hardcoded stage='{_FALLBACK_STAGE}'")
+        return _FALLBACK_STAGE
+
+    if _flush_clf is None:
+        _flush_clf = FlushClassifier()
+    if _flush_clf.available:
         return _flush_clf.predict(image_rgb)
-    if not _flush_clf.available:
-        print(f"[demo] FlushClassifier not loaded — using hardcoded stage='{_FALLBACK_STAGE}'")
+
+    print(f"[demo] FlushClassifier not loaded — using hardcoded stage='{_FALLBACK_STAGE}'")
     return _FALLBACK_STAGE
 
 
