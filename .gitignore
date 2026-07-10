@@ -37,6 +37,8 @@ runs/
 *.pkl
 # onnx2tf output (saved_model + reports), regenerable
 models/flush_stage_tf/
+# Helopeltis detector saved_model (onnx->tf intermediate, regenerable)
+models/helopeltis_phase1/weights/best_saved_model/
 
 # System / IDE
 .DS_Store
