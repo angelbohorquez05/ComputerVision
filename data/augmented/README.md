@@ -8,6 +8,3 @@ progetto, per simulare condizioni di campo.
   caricano a mano e non si versionano su git (sono rigenerabili).
 - Se la cartella ti appare vuota, è normale: significa che il pipeline non è
   ancora stato eseguito.
-
-> Questo README sostituisce il vecchio `.gitkeep`: serve solo a mantenere la
-> cartella nel repo e a spiegare, in modo leggibile, cosa ci va dentro.
