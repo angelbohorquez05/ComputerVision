@@ -13,9 +13,16 @@ interesting cases (alert, non-alert, low-confidence review).
 
 import json
 from datetime import datetime
+from pathlib import Path
 
 from src.who_where_when import FLUSH_STAGES
-from src.fusion import FusionEngine, FlushClassifier, InsectDetection, ZoneDetection, BBox
+from src.fusion import (
+    FusionEngine, FlushClassifier, HelopeltisDetector,
+    InsectDetection, ZoneDetection, BBox,
+)
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REAL_IMAGE_DIR = _REPO_ROOT / "data" / "raw" / "helopeltis" / "test" / "images"
 
 _FALLBACK_STAGE = "new_flush"
 
@@ -132,9 +139,75 @@ def demo_export(observations):
     print(json.dumps(payload, indent=2))
 
 
+# ── Demo 4: real inference on a dataset image ────────────────────────────────
+
+def demo_real(max_images: int = 3):
+    """Run the real YOLOv8-n detector + flush-stage classifier end-to-end.
+
+    Needs the ONNX detector (``models/helopeltis_phase1.onnx``) and the optional
+    heavy deps (onnxruntime, Pillow, numpy). When they are missing the function
+    skips cleanly instead of failing, so the stdlib-only demos above still run.
+
+    The plant-zone segmenter (WHERE) is not trained yet, so this uses a
+    full-frame ``Efficiency`` zone as an explicit placeholder — the same gap
+    tracked in the README roadmap.
+    """
+    print("\n" + "=" * 60)
+    print("DEMO 4 — Real inference on dataset images")
+    print("=" * 60)
+
+    detector = HelopeltisDetector()
+    if not detector.available:
+        print("[demo] Detector model not available — skipping real inference.")
+        print("       (expected models/helopeltis_phase1.onnx + onnxruntime)")
+        return
+
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError as e:
+        print(f"[demo] Missing dependency for real inference ({e}) — skipping.")
+        return
+
+    images = sorted(_REAL_IMAGE_DIR.glob("*.jpg"))[:max_images]
+    if not images:
+        print(f"[demo] No images found in {_REAL_IMAGE_DIR} — skipping.")
+        return
+
+    engine = FusionEngine()
+    # Whole-frame defense zone: honest stand-in until the zone segmenter exists.
+    full_frame_zone = [ZoneDetection("Efficiency", BBox(0.0, 0.0, 1.0, 1.0), confidence=1.0)]
+
+    for path in images:
+        image_rgb = np.array(Image.open(path).convert("RGB"))
+        insects = detector.detect(image_rgb)
+        stage = resolve_stage(image_rgb)
+        observations = engine.fuse_frame(insects, full_frame_zone, stage=stage)
+
+        print(f"\n{path.name}")
+        print(f"  detector : {len(insects)} insect(s), stage={stage}")
+        for obs in observations:
+            print(f"  -> {obs.summary()}")
+        if not observations and insects:
+            print("  (detections below publish threshold — routed to review)")
+
+    review = engine.drain_review_queue()
+    if review:
+        print(f"\nQueued for review ({len(review)} item/s):")
+        for item in review:
+            print(f"  [{item['label']}] conf={item['confidence']:.2f} — {item['reason']}")
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import sys
+    # Windows consoles default to cp1252; the demo prints em-dashes and box
+    # rules, so force UTF-8 output and degrade gracefully rather than crash.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     obs = demo_image()
     demo_video()
     demo_export(obs)
+    demo_real()

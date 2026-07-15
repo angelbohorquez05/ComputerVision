@@ -2,6 +2,7 @@ from src.fusion import (
     BBox,
     FlushClassifier,
     FusionEngine,
+    HelopeltisDetector,
     InsectDetection,
     ZoneDetection,
     LOW_CONF_THRESHOLD,
@@ -59,3 +60,26 @@ def test_flush_threshold_favors_new_flush():
     assert FlushClassifier._decide([-0.405, 0.0]) == "new_flush"   # P(new_flush)=0.40
     assert FlushClassifier._decide([-1.386, 0.0]) == "mature_leaf"  # P(new_flush)=0.20
     assert FlushClassifier._decide([2.0, 0.0]) == "new_flush"       # clear new_flush
+
+
+def test_nms_collapses_overlapping_boxes():
+    # The detector emits one raw prediction per anchor, so many near-identical
+    # boxes cover the same insect. NMS must keep only the highest-confidence one.
+    overlapping = [
+        (BBox(0.30, 0.30, 0.60, 0.60), 0.70),
+        (BBox(0.31, 0.31, 0.61, 0.61), 0.90),  # best — should survive
+        (BBox(0.29, 0.29, 0.59, 0.59), 0.80),
+    ]
+    kept = HelopeltisDetector._nms(overlapping, iou_threshold=0.45)
+    assert len(kept) == 1
+    assert kept[0][1] == 0.90
+
+
+def test_nms_keeps_distinct_boxes():
+    # Two insects far apart must both survive NMS.
+    distinct = [
+        (BBox(0.05, 0.05, 0.20, 0.20), 0.90),
+        (BBox(0.70, 0.70, 0.90, 0.90), 0.85),
+    ]
+    kept = HelopeltisDetector._nms(distinct, iou_threshold=0.45)
+    assert len(kept) == 2

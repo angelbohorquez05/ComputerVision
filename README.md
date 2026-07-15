@@ -111,9 +111,10 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 
 **Stato onesto del progetto**
 
-- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (11 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
+- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → export JSON). Verificata da `pytest` (13 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
+- **Inferenza reale del detector (WHO) integrata:** `HelopeltisDetector` esegue il modello YOLOv8-n via ONNX Runtime su CPU (coordinate normalizzate + *non-max suppression*). La `demo_real` di [`src/demo.py`](src/demo.py) gira sulle immagini reali del test set (`data/raw/helopeltis/test/`): detector reale → classificatore di stadio reale → `Observation`. Se il file ONNX (binario pesante, fuori da git) o `onnxruntime` mancano, la demo salta questo passo senza errori.
 - **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
-- **Non ancora integrato nel repo:** l'inferenza reale con i pesi YOLOv8 (i pesi sono fuori da git, documentati nella model card). È il prossimo passo per chiudere il ciclo su dati reali.
+- **Non ancora nel repo:** il segmentatore di zona della pianta (WHERE) — oggi la `demo_real` usa una zona `Efficiency` a frame intero come *placeholder* esplicito. È il prossimo passo per chiudere il ciclo su dati reali.
 
 ## Ulteriori informazioni
 

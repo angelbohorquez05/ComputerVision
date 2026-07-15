@@ -1,11 +1,26 @@
 # Decision Log — TINAT
 
 > Registro delle decisioni tecniche e organizzative del progetto.
-> Regola d'oro del corso: *"Se una decisione è importante, deve essere rintracciabile in un documento o in un artefatto nel repository."*
+> Principio guida: *"Se una decisione è importante, deve essere rintracciabile in un documento o in un artefatto nel repository."*
 
 > Nota di lettura: le decisioni del **lavoro reale** (architettura, dati, metrica) risalgono a maggio-giugno 2026, quando il progetto è stato sviluppato durante il tirocinio. Le decisioni di **organizzazione del repository e DevOps** (repo "specchio" anonimizzato, CI, flusso Git) sono di luglio 2026, quando il lavoro è stato riportato in questo repository pubblico e anonimizzato. Le date indicano quando la decisione è stata presa, non quando è stata scritta qui.
 
 ---
+
+## [2026-07-15] Integrazione dell'inferenza reale del detector (ONNX) con NMS
+
+**Contesto:** il wrapper `HelopeltisDetector` (inferenza YOLOv8-n via ONNX Runtime) era presente nel codice ma non veniva esercitato da nessuna parte: la demo usava solo rilevamenti sintetici (`mock_insects`), e nessun test lo copriva. Provandolo per la prima volta su immagini reali del test set, sono emersi due difetti nel metodo `detect()`: (1) le coordinate venivano divise per `imgsz`, ma l'export del modello le restituisce **già normalizzate** in `[0, 1]` — doppia normalizzazione che produceva *bounding box* degenerate (~0.001 di lato); (2) mancava la *non-max suppression*, quindi un singolo insetto generava ~10 box sovrapposte (una per anchor sopra soglia).
+
+**Alternative considerate:**
+- *Lasciare il detector reale come "prossimo passo" documentato* — scartato: il modello ONNX, `onnxruntime` e le immagini di test erano tutti già disponibili; il collegamento mancava solo per un bug mai validato.
+- *Usare `ultralytics` per l'inferenza (che fa NMS e scaling internamente)* — scartato: aggiungerebbe una dipendenza pesante al percorso di inferenza, mentre l'export ONNX + `onnxruntime` è coerente con il target di deploy offline su CPU/mobile. La NMS è ~10 righe di geometria già presente (`BBox.iou`).
+- *Correggere coordinate e NMS nel wrapper esistente* — scelto.
+
+**Decisione:** in `detect()` le coordinate si leggono direttamente in `[0, 1]` (niente `/imgsz`), il lato di input si ricava dal modello stesso (`get_inputs()[0].shape`), e le box sopra soglia passano per una NMS greedy (`_nms`, soglia IoU 0.45). Aggiunta `demo_real()` in `demo.py` che gira sulle immagini reali del test set (detector reale → classificatore di stadio reale → `Observation`), con *skip* pulito se il binario ONNX o `onnxruntime` mancano. Due test di geometria pura coprono la NMS senza richiedere il modello (CI resta stdlib-only).
+
+**Motivazione:** il ciclo WHO×WHEN gira ora su dati reali end-to-end, non più simulato. Tenere la NMS in casa (invece di `ultralytics`) mantiene il percorso di inferenza leggero e allineato al deploy previsto. Lo *skip* pulito preserva la CI leggera: i test non scaricano i pesi.
+
+**Conseguenze/rischi:** la zona della pianta (WHERE) non ha ancora un segmentatore, quindi `demo_real` usa una zona `Efficiency` a frame intero come *placeholder* esplicito — è il prossimo gap dichiarato nel README. La soglia di confidenza (0.25) e la soglia IoU (0.45) sono i default di YOLOv8 e non sono ancora state calibrate sul dominio.
 
 ## [2026-07-10] La demo torna a essere stdlib-only (caricamento pigro del classificatore)
 
@@ -52,14 +67,14 @@
 - *Cancellare e ricreare il repository da una copia pulita* — è l'unica garanzia totale, ma scartato per ora: si perderebbero i metadati del repository; ripiegato su tenerlo privato come rete di sicurezza.
 - *Riscrivere la cronologia con `git filter-repo` + force-push* — scelto.
 **Decisione:** riscrivere l'intera cronologia con `git filter-repo` (tabella di sostituzioni testuali applicata a tutti i commit), force-push su `main`, cancellare la branch contaminata dal remoto e le branch *head* delle vecchie PR. Backup della cronologia precedente conservato localmente prima dell'operazione.
-**Motivazione:** rispettare la riservatezza del tirocinio (regola di anonimizzazione) senza rinunciare allo storico dei commit, che è l'artefatto di processo richiesto dal corso.
+**Motivazione:** rispettare la riservatezza del tirocinio (regola di anonimizzazione) senza rinunciare allo storico dei commit, che è l'artefatto di processo del progetto.
 **Conseguenze/rischi:** tutti gli hash dei commit cambiano (riscrittura completa). I commit vecchi possono restare raggiungibili tramite i ref delle PR (`refs/pull/*`) finché il repository non viene ricreato: mitigato mantenendo il repository **privato**. Come sempre, ciò che è stato pubblico può essere già stato indicizzato o clonato: la pulizia riduce l'esposizione futura, non cancella il passato.
 
 ## [2026-07-09] Rimozione di Docker (semplificazione del repository)
 
 **Contesto:** il `Dockerfile` era stato aggiunto per la riproducibilità della demo (vedi la voce "Containerizzazione con Docker" più sotto). Rivalutando lo scope, il container non viene usato nel flusso di lavoro né nella presentazione: la demo gira già con `python -m src.demo`, e la riproducibilità dell'ambiente è già coperta da `requirements.txt` con versioni pinnate + la CI su Python 3.10.
 **Alternative considerate:**
-- *Tenere il `Dockerfile` anche se non usato* — scartato: un artefatto DevOps mai eseguito nel processo reale è "copertura di facciata"; il corso premia l'onestà del processo (onestà > copertura finta).
+- *Tenere il `Dockerfile` anche se non usato* — scartato: un artefatto DevOps mai eseguito nel processo reale è "copertura di facciata" (onestà > copertura finta).
 - *Trasformarlo in un'immagine per l'inferenza reale (stack ML completo + pesi)* — scartato: fuori scope adesso; richiederebbe un'immagine multi-GB e i pesi non versionati.
 **Decisione:** rimuovere `Dockerfile` e `.dockerignore` dal repository e la relativa sezione dal README. La voce originale qui sotto resta come storico della decisione.
 **Motivazione:** mantenere il repo minimale e onesto — solo artefatti realmente usati — senza perdere riproducibilità (garantita da `requirements.txt` pinnato + CI).
@@ -83,23 +98,23 @@ Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`
 
 ## [2026-07-09] Versionare il dataset pubblico e gli artefatti di risultato (non i pesi)
 
-**Contesto:** per l'esame serve mostrare i **risultati** del training (metriche, curve, batch di esempio) e permettere la riproducibilità. Inizialmente `.gitignore` escludeva tutta la cartella `data/` e `models/`; ma il dataset è pubblico e piccolo, e i risultati sono proprio ciò che la docente vuole vedere.
+**Contesto:** serve mostrare i **risultati** del training (metriche, curve, batch di esempio) e permettere la riproducibilità. Inizialmente `.gitignore` escludeva tutta la cartella `data/` e `models/`; ma il dataset è pubblico e piccolo, e i risultati sono proprio ciò che dà valore al repository.
 **Alternative considerate:**
 - *Non versionare nulla e scaricare tutto via script* — scartato: i risultati non sarebbero visibili nel repo, e per un dataset pubblico da ~5 MB la complessità non si giustifica.
 - *Versionare anche i pesi del modello (`*.pt`, `*.onnx`, `*.tflite`)* — scartato: binari pesanti (47 MB i soli `.pt`), rigenerabili dal training, gonfiano git senza valore di processo.
 **Decisione:** versionare **il dataset pubblico** (`data/`, ~5 MB, Roboflow CC BY 4.0) e **gli artefatti di risultato** del training (`models/helopeltis_phase1/`: `results.csv`, `args.yaml`, `labels.jpg`, `train_batch*.jpg`, ~1.2 MB). Restano ignorati solo i binari pesanti (`*.pt`/`*.onnx`/`*.tflite`, `runs/`).
-**Motivazione:** i risultati diventano ispezionabili e riproducibili direttamente dal repository (evidenza di processo per l'esame), mantenendo git leggero. Dati e immagini sono pubblici (CC BY 4.0), quindi nessun problema di riservatezza.
+**Motivazione:** i risultati diventano ispezionabili e riproducibili direttamente dal repository (evidenza di processo), mantenendo git leggero. Dati e immagini sono pubblici (CC BY 4.0), quindi nessun problema di riservatezza.
 **Conseguenze/rischi:** se in futuro si aggiungono dataset pesanti (es. il set di flush di Mendeley con migliaia di immagini) va ignorata quella specifica sottocartella. Gli `args.yaml` di Ultralytics contengono path assoluti locali (artefatti autentici del run), non riservati.
 
 ## [2026-07-09] Separazione in due livelli: repo anonimizzato + livello privato locale
 
-**Contesto:** il tirocinio prosegue nel tempo e produce anche materiale **riservato** (documenti aziendali, note e conversazioni con il supervisore, versioni con nomi reali). Serviva un unico spazio di lavoro che valga sia per l'esame sia per la continuazione del tirocinio, senza che il materiale riservato finisca mai nel repository condiviso.
+**Contesto:** il tirocinio prosegue nel tempo e produce anche materiale **riservato** (documenti aziendali, note e conversazioni con il supervisore, versioni con nomi reali). Serviva un unico spazio di lavoro per la continuazione del tirocinio, senza che il materiale riservato finisca mai nel repository pubblico.
 **Alternative considerate:**
 - *Due repository separati (uno reale privato, uno anonimizzato)* — scartato: duplica il lavoro e disperde la storia; facile disallineare i due.
-- *Rendere l'intero repo privato su GitHub e inserirvi i dati reali* — scartato: se poi il repo viene condiviso (es. con la docente) il materiale riservato e i nomi reali sarebbero comunque visibili.
+- *Rendere l'intero repo privato su GitHub e inserirvi i dati reali* — scartato: se poi il repo viene condiviso il materiale riservato e i nomi reali sarebbero comunque visibili.
 - *Tenere il materiale riservato in una cartella fuori dal progetto* — scartato: si perde l'unità del progetto (l'obiettivo è "un solo progetto").
-**Decisione:** un **unico progetto a due livelli**. Il livello pubblico/condivisibile è il repo **TINAT anonimizzato** (ciò che si committa e si pubblica: artefatto dell'esame). Il livello privato è la cartella locale **`_private/`**, inserita in `.gitignore` e quindi **mai versionata né pubblicata**; contiene il materiale reale del tirocinio. Verificato con `git check-ignore` e `git status` che `_private/` non è tracciata.
-**Motivazione:** un solo posto in cui lavorare, la storia dei commit resta pulita e anonima (l'artefatto per la docente), e i nomi reali/materiale aziendale non lasciano mai la macchina. Coerente con la regola di anonimizzazione già adottata per il repo.
+**Decisione:** un **unico progetto a due livelli**. Il livello pubblico/condivisibile è il repo **TINAT anonimizzato** (ciò che si committa e si pubblica). Il livello privato è la cartella locale **`_private/`**, inserita in `.gitignore` e quindi **mai versionata né pubblicata**; contiene il materiale reale del tirocinio. Verificato con `git check-ignore` e `git status` che `_private/` non è tracciata.
+**Motivazione:** un solo posto in cui lavorare, la storia dei commit resta pulita e anonima, e i nomi reali/materiale aziendale non lasciano mai la macchina. Coerente con la regola di anonimizzazione già adottata per il repo.
 **Conseguenze/rischi:** la separazione dipende dalla disciplina nel mettere il materiale reale dentro `_private/` e nell'anonimizzare prima di spostare qualcosa verso il repo. Prima di ogni commit resta valido il controllo (`grep`) sui nomi reali. Nota operativa: il repo va tenuto fuori da cartelle sincronizzate (OneDrive) per non rischiare la corruzione di `.git`.
 
 ## [2026-07-09] Strategia di branching: feature-branch + Pull Request (GitHub Flow)
@@ -107,14 +122,14 @@ Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`
 **Contesto:** finora i commit sono andati direttamente su `main` (accettabile per l'avvio di un progetto individuale). Ora che esiste una CI che gira sulle Pull Request, conviene adottare un flusso che mostri esplicitamente il ciclo DevOps-Agile: sviluppo su branch, revisione, merge controllato.
 **Alternative considerate:**
 - *Continuare a committare direttamente su `main`* — scartato d'ora in poi: semplice, ma non mostra il flusso di revisione né sfrutta la CI come gate prima del merge.
-- *Git-flow completo (branch `develop`, `release/*`, `hotfix/*`)* — scartato: pensato per team e rilasci versionati, è complessità eccessiva per un progetto individuale d'esame.
+- *Git-flow completo (branch `develop`, `release/*`, `hotfix/*`)* — scartato: pensato per team e rilasci versionati, è complessità eccessiva per un progetto individuale.
 **Decisione:** adottare un **GitHub Flow leggero**: `main` sempre "verde" e deployabile; ogni modifica su un branch a vita breve con prefisso di tipo (`feature/`, `fix/`, `docs/`, `ci/`, `build/`); merge su `main` tramite **Pull Request** con CI verde. Aggiunta una `.github/pull_request_template.md` per strutturare ogni PR (cosa cambia, test verdi, anonimizzazione verificata, decision-log aggiornato).
-**Motivazione:** rende visibile e tracciabile il processo (il PR è un artefatto che la docente può rivedere), usa la CI come cancello di qualità e resta semplice per un singolo sviluppatore. Questa stessa modifica viene introdotta tramite il flusso che documenta.
+**Motivazione:** rende visibile e tracciabile il processo (il PR è un artefatto rivedibile), usa la CI come cancello di qualità e resta semplice per un singolo sviluppatore. Questa stessa modifica viene introdotta tramite il flusso che documenta.
 **Conseguenze/rischi:** con un solo sviluppatore la revisione è auto-revisione (nessun secondo revisore); è un limite consapevole. I commit iniziali su `main` restano nello storico come avvio onesto del progetto.
 
 ## [2026-07-09] Containerizzazione con Docker (immagine slim per la demo)
 
-**Contesto:** in un corso DevOps la riproducibilità dell'ambiente è centrale: il progetto deve poter girare allo stesso modo su qualsiasi macchina, senza dipendere dal setup locale. Mancava un artefatto di packaging.
+**Contesto:** in un flusso DevOps la riproducibilità dell'ambiente è centrale: il progetto deve poter girare allo stesso modo su qualsiasi macchina, senza dipendere dal setup locale. Mancava un artefatto di packaging.
 **Alternative considerate:**
 - *Nessun Docker, solo istruzioni di setup nel README* — scartato: il README aiuta ma non garantisce un ambiente identico e riproducibile.
 - *Immagine Docker che installa tutto `requirements.txt` (torch, tensorflow, ultralytics)* — scartato: immagine multi-GB, build lenta; la demo e la logica di fusione usano solo la libreria standard di Python, quindi lo stack ML completo non serve per eseguirla.
@@ -125,9 +140,9 @@ Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`
 
 ## [2026-07-09] Integrazione continua (CI) con GitHub Actions
 
-**Contesto:** il corso è DevOps-Agile e il repository ha già una suite di test (`pytest`, 10 casi), ma nulla li esegue in automatico: i test vengono lanciati solo a mano. Manca l'artefatto DevOps più tipico, la *continuous integration*.
+**Contesto:** il progetto segue un approccio DevOps-Agile e il repository ha già una suite di test (`pytest`, 10 casi), ma nulla li esegue in automatico: i test vengono lanciati solo a mano. Manca l'artefatto DevOps più tipico, la *continuous integration*.
 **Alternative considerate:**
-- *Nessuna CI, test solo a mano* — scartato: niente evidenza automatica di processo, il valore chiave per l'esame.
+- *Nessuna CI, test solo a mano* — scartato: niente evidenza automatica di processo.
 - *CI che installa tutto `requirements.txt` (torch, tensorflow, ultralytics)* — scartato: l'installazione è pesante, lenta e fragile, e i moduli coperti dai test (`who_where_when.py`, `fusion.py`) usano solo la libreria standard di Python; installare lo stack ML completo non serve per eseguire i test.
 - *GitLab CI / altri runner* — scartato: il repo è su GitHub, GitHub Actions è integrato e senza configurazione esterna.
 **Decisione:** aggiungere un workflow GitHub Actions (`.github/workflows/ci.yml`) che, a ogni push e pull request su `main`, su Python 3.10 (versione minima dichiarata) installa solo `pytest` ed esegue la suite di test.
@@ -167,21 +182,11 @@ Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`
 
 ## [2026-07-03] Struttura minima ed essenziale
 
-**Contesto:** una struttura con molte cartelle vuote (`notebooks/`, `models/`, `data/raw`, `data/processed`, `exam/`) rende il repo simile a uno scheletro d'esame più che a un progetto di modello reale.
+**Contesto:** una struttura con molte cartelle vuote (`notebooks/`, `models/`, `data/raw`, `data/processed`) rende il repo simile a uno scheletro più che a un progetto di modello reale.
 **Alternative considerate:** mantenere lo scheletro completo "da manuale" con tutte le cartelle predisposte (scartato: cartelle vuote con `.gitkeep` comunicano "impalcatura", non lavoro reale).
 **Decisione:** ridurre a `src/`, `tests/`, `data/` e `docs/` (con `docs/decision-log.md`). Cartelle aggiuntive verranno create solo quando conterranno materiale reale.
 **Motivazione:** un repo credibile mostra solo ciò che serve; si evita di simulare struttura non ancora usata.
 **Conseguenze/rischi:** alcune cartelle standard (es. per i notebook) andranno aggiunte più avanti, al momento del bisogno.
-
-## [2026-07-02] Repo personale e indipendente (non il repo condiviso di classe)
-
-**Contesto:** il progetto d'esame va versionato su GitHub. Esiste un repo di classe condiviso (`2025-27.ML---UFS14`) in cui ogni studente aggiunge una cartella; in alternativa si può usare un repo personale dedicato.
-**Alternative considerate:**
-- *Repo aziendale originale del tirocinio* — scartato: riservatezza, non è materiale mio da pubblicare.
-- *Contribuire al repo condiviso di classe* — scartato: ogni modifica dipende da PR/issue accettati da terzi, rischio di conflitti con le cartelle dei compagni, e lo storico dei commit (che è l'artefatto da mostrare) non è pienamente sotto il mio controllo.
-**Decisione:** creare un **repo personale, indipendente e privato** sul mio profilo GitHub, con nome generico **TINAT**.
-**Motivazione:** controllo totale sullo storico dei commit, nessuna dipendenza da altri, libertà di sperimentare il flusso DevOps-Agile. La demo avviene comunque in classe dal mio computer; la docente può essere invitata come collaboratrice per rivedere lo storico e dare feedback.
-**Conseguenze/rischi:** devo gestire io la disciplina dei commit; il repo non è visibile pubblicamente (privato) fino a invito esplicito.
 
 ## [2026-07-02] Repo "specchio" anonimizzato del progetto di tirocinio
 
@@ -194,7 +199,7 @@ Le immagini restano **fuori da git** (`.gitignore` su `data/raw/flush_stages/**`
 ## [2026-06-16] IP102 (classe Miridae) come base pubblica per il fine-tuning
 
 **Contesto:** servono dati pubblici coerenti con il dominio (insetti parassiti), senza usare dati proprietari.
-**Alternative considerate:** raccogliere/etichettare un dataset da zero (scartato: troppo costoso nei tempi dell'esame); usare dati del tirocinio (scartato: riservatezza).
+**Alternative considerate:** raccogliere/etichettare un dataset da zero (scartato: troppo costoso in termini di tempo); usare dati proprietari del tirocinio (scartato: riservatezza).
 **Decisione:** partire da **IP102**, concentrandosi sulla/e classe/i riconducibili alla famiglia **Miridae**, come base per il transfer verso Helopeltis.
 **Motivazione:** dataset pubblico, ampio e citato in letteratura, coerente con il dominio.
 **Conseguenze/rischi:** IP102 è un *proxy*; il transfer verso il target reale andrà validato; possibile sbilanciamento delle classi.

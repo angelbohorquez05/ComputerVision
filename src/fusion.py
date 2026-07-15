@@ -44,9 +44,14 @@ class HelopeltisDetector:
 
     _MODEL_PATH = _MODELS_DIR / "helopeltis_phase1.onnx"
     CONF_THRESHOLD = 0.25
+    # IoU above which two boxes are treated as the same object during NMS.
+    IOU_THRESHOLD = 0.45
+    # Fallback square input size if the model does not declare a static one.
+    _DEFAULT_IMGSZ = 320
 
     def __init__(self):
         self._session = None
+        self._imgsz = self._DEFAULT_IMGSZ
         if self._MODEL_PATH.exists():
             try:
                 import onnxruntime as ort
@@ -55,6 +60,11 @@ class HelopeltisDetector:
                     providers=["CPUExecutionProvider"],
                 )
                 self._input_name = self._session.get_inputs()[0].name
+                # Read the export's static input side (…, H, W); keep the default
+                # only if the model was exported with a dynamic axis.
+                shape = self._session.get_inputs()[0].shape
+                if isinstance(shape[-1], int):
+                    self._imgsz = shape[-1]
             except Exception as e:
                 print(f"[HelopeltisDetector] Could not load model: {e}")
 
@@ -62,12 +72,20 @@ class HelopeltisDetector:
     def available(self) -> bool:
         return self._session is not None
 
-    def detect(self, image_rgb, imgsz: int = 320) -> list:
-        """Return list[InsectDetection] from an RGB numpy array."""
+    def detect(self, image_rgb, imgsz: Optional[int] = None) -> list:
+        """Return list[InsectDetection] from an RGB numpy array.
+
+        The model exports normalised box coordinates (cx, cy, w, h all in
+        [0, 1]) and one raw prediction per anchor, so overlapping anchors on the
+        same insect are collapsed with non-max suppression before returning.
+        """
         if not self.available:
             return []
         import numpy as np
         from PIL import Image
+
+        if imgsz is None:
+            imgsz = self._imgsz
 
         img = Image.fromarray(image_rgb).resize((imgsz, imgsz))
         tensor = np.array(img, dtype=np.float32).transpose(2, 0, 1)[np.newaxis] / 255.0
@@ -76,18 +94,31 @@ class HelopeltisDetector:
         out = raw[0]
         if out.shape[0] == 5:      # shape (5, anchors) → transpose to (anchors, 5)
             out = out.T
-        detections = []
-        for pred in out:           # each row: cx cy w h conf
+
+        boxes = []                 # (bbox, confidence) above the confidence gate
+        for pred in out:           # each row: cx cy w h conf (coords already in [0, 1])
             conf = float(pred[4])
             if conf < self.CONF_THRESHOLD:
                 continue
-            cx, cy, w, h = pred[:4] / imgsz
-            detections.append(InsectDetection(
-                label="Helopeltis spp.",
-                bbox=BBox(cx - w/2, cy - h/2, cx + w/2, cy + h/2),
-                confidence=conf,
+            cx, cy, w, h = (float(v) for v in pred[:4])
+            boxes.append((
+                BBox(cx - w/2, cy - h/2, cx + w/2, cy + h/2),
+                conf,
             ))
-        return detections
+
+        return [
+            InsectDetection(label="Helopeltis spp.", bbox=bbox, confidence=conf)
+            for bbox, conf in self._nms(boxes, self.IOU_THRESHOLD)
+        ]
+
+    @staticmethod
+    def _nms(boxes: list, iou_threshold: float) -> list:
+        """Greedy non-max suppression over (BBox, confidence) pairs."""
+        kept = []
+        for bbox, conf in sorted(boxes, key=lambda bc: bc[1], reverse=True):
+            if all(bbox.iou(kbox) <= iou_threshold for kbox, _ in kept):
+                kept.append((bbox, conf))
+        return kept
 
 
 # ── Flush-stage classifier wrapper ───────────────────────────────────────────
