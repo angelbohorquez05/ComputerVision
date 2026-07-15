@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-15] Valutazione del detector sul percorso integrato (non sui log di training)
+
+**Contesto:** le metriche del detector nel README (mAP@0.5 ≈ 0.995) provenivano dalla validazione di Ultralytics al momento del training. Ma da quando l'inferenza reale gira attraverso `HelopeltisDetector` (ONNX Runtime + NMS), quel percorso non era mai stato misurato contro il ground truth: correttezza delle coordinate, soglia di confidenza e NMS potevano divergere dai numeri di training senza che nessuno se ne accorgesse.
+
+**Alternative considerate:**
+- *Fidarsi delle metriche di Ultralytics* — scartato: misurano l'export di training, non il wrapper ONNX effettivamente integrato (dove stavano i due bug appena corretti). Un numero non verificato sul percorso reale non è un artefatto affidabile.
+- *Aggiungere `pycocotools` per il calcolo dell'AP* — scartato: dipendenza pesante per una singola classe. L'AP@0.5 a interpolazione totale è ~30 righe e riusa `BBox.iou` già presente.
+- *Script di valutazione dedicato che rimisura il percorso integrato* — scelto.
+
+**Decisione:** `src/evaluate_detector.py` esegue `HelopeltisDetector.detect()` su tutte le 49 immagini di test, abbina le predizioni al ground truth YOLO per IoU ≥ 0.5 (greedy, ogni GT una sola volta), e calcola precision, recall e AP@0.5 (stessa definizione di mAP@0.5 di Ultralytics). Il risultato è salvato in `models/detector_eval.json` (artefatto versionato, come `flush_stage_metrics.json`). La matematica (matching, AP, parsing delle label) è coperta da test di sola geometria, quindi la CI resta stdlib-only.
+
+**Motivazione:** rende onesto e riproducibile il numero pubblicato — misura ciò che gira davvero, non ciò che il training ha loggato. Risultato: 49 predizioni per 49 GT (NMS deduplica correttamente), precision/recall/AP@0.5 = 1.0. Conferma che la correzione di coordinate + NMS è giusta e riproduce le metriche di training.
+
+**Conseguenze/rischi:** l'1.0 perfetto è coerente ma va letto con la stessa cautela già dichiarata (49 immagini, stesso dominio "internet" del training); non è una garanzia sul campo. Le soglie (conf 0.25, IoU match 0.5) sono i default; con foto reali dal campo la valutazione andrà rieseguita e le soglie ricalibrate. Questo script diventa lo strumento di monitoraggio dell'andamento di mAP citato nella sezione MLOps.
+
 ## [2026-07-15] Integrazione dell'inferenza reale del detector (ONNX) con NMS
 
 **Contesto:** il wrapper `HelopeltisDetector` (inferenza YOLOv8-n via ONNX Runtime) era presente nel codice ma non veniva esercitato da nessuna parte: la demo usava solo rilevamenti sintetici (`mock_insects`), e nessun test lo copriva. Provandolo per la prima volta su immagini reali del test set, sono emersi due difetti nel metodo `detect()`: (1) le coordinate venivano divise per `imgsz`, ma l'export del modello le restituisce **già normalizzate** in `[0, 1]` — doppia normalizzazione che produceva *bounding box* degenerate (~0.001 di lato); (2) mancava la *non-max suppression*, quindi un singolo insetto generava ~10 box sovrapposte (una per anchor sopra soglia).

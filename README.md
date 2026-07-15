@@ -72,6 +72,7 @@ TINAT/
 - **Input/Output:** immagine RGB → *bounding box* + confidenza.
 - **Export:** ONNX e TFLite (deploy offline su mobile).
 - **Risultati (test set, 49 immagini da internet):** mAP@0.5 ≈ 0.995, precision ≈ 0.99, recall = 1.0. *Da leggere con cautela:* test set piccolo e stesso dominio "internet" del training; il vero banco di prova saranno le foto reali dal campo.
+- **Verifica del percorso integrato:** [`src/evaluate_detector.py`](src/evaluate_detector.py) rimisura il detector *così come gira nella pipeline* (ONNX Runtime + NMS, non i log di training) sul test set: precision/recall/AP@0.5 = 1.0 con una predizione per immagine (49 box per 49 ground truth), risultato salvato in [`models/detector_eval.json`](models/detector_eval.json). Conferma che l'integrazione riproduce le metriche di training — e lo stesso caveat vale: 1.0 su 49 immagini dello stesso dominio va letto con cautela.
 
 Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [model card](docs/model-card.md).
 
