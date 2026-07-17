@@ -1,68 +1,50 @@
-# CLAUDE.md — Progetto d'esame UFS14 (Processo e Sviluppo del Software)
+# CLAUDE.md — TINAT
 
-> Questo file dà a Claude Code il contesto del progetto. Leggilo all'inizio di ogni sessione.
+> Contesto del progetto per Claude Code. Leggilo all'inizio di ogni sessione.
 
-## Contesto
+## Cos'è TINAT
 
-- **Corso:** UFS14 — Processo e Sviluppo del Software (DevOps-Agile), ITS Angelo Rizzoli, Milano.
-- **Studente:** Angel (lavoro **individuale**).
-- **Progetto:** **TINAT** — rilevamento (*object detection*) di Helopeltis (Miridae) su colture di tè con YOLOv8, più una metrica ecologica WHO×WHERE×WHEN e una capa di fusione. Migrazione anonimizzata di un progetto reale di tirocinio (il nome reale del progetto, l'azienda, i colleghi, i luoghi e le infrastrutture NON vanno mai menzionati nel repo — solo "TINAT", dati pubblici).
-- **Consegna:** repo GitHub **personale e indipendente** (sul profilo di Angel), non il repo condiviso di classe. Scelta motivata: controllo totale sullo storico dei commit (che è l'artefatto da mostrare), nessuna dipendenza da PR/issue accettati da altri. Presentazione in classe dal computer di Angel; eventualmente la docente viene invitata come collaboratrice per rivedere lo storico e commentare come migliorarlo.
-- **Priorità del corso:** alla docente interessa il **processo** (organizzazione, decisioni, tracciabilità, ciclo di vita ML, MLOps), NON la perfezione del codice o del modello. Il progetto può essere incompleto: l'importante è documentare onestamente dove si trova e perché.
+**TINAT** è il lavoro del **tirocinio** di Angel (lavoro individuale): *object detection* di
+Helopeltis (famiglia Miridae) su colture di tè con YOLOv8, più una metrica ecologica
+WHO×WHERE×WHEN e una capa di fusione.
 
-## Regola d'oro del corso
+Questo repository è la versione **anonimizzata e pubblicabile** del progetto reale di tirocinio:
+usa esclusivamente dati pubblici e codice scritto da Angel. Il nome reale del progetto, l'azienda,
+i colleghi, i luoghi e le infrastrutture NON compaiono mai qui — solo "TINAT".
 
-> "Se una decisione è importante, deve essere rintracciabile in un documento o in un artefatto nel repository."
+## Riservatezza e anonimizzazione (IMPORTANTE)
 
-Quindi: **ogni decisione tecnica o organizzativa rilevante va registrata in `docs/decision-log.md`** con: (1) la decisione, (2) le alternative considerate, (3) perché è stata scelta questa e non un'altra.
+- NON menzionare mai il nome reale del progetto né l'azienda in codice, docs, commit messages,
+  nomi di file o commenti. Il progetto si chiama solo **TINAT**.
+- NON copiare codice, dati, pesi di modelli o documenti proprietari dell'azienda.
+- **Migrazione selettiva:** entra nel repo solo ciò che è di Angel e/o pubblico (dataset da
+  internet, codice scritto da Angel, struttura ridefinita da zero). Ogni pezzo migrato = un commit
+  dedicato con messaggio descrittivo.
+- Le decisioni possono essere descritte in modo generico ("il supervisore del tirocinio ha
+  indicato…" senza nomi né dettagli riservati).
+- Prima di ogni commit, `grep` di nomi reali sui file trackeati (escluso `_private/`); se qualcosa
+  è già stato pushato, non basta correggere il file: va purgato anche lo storico.
+
+## Due livelli: repo anonimizzato + `_private/` locale
+
+- **Livello pubblico/condivisibile** = questo repo TINAT anonimizzato (ciò che si committa e si
+  pubblica).
+- **Livello privato** = cartella locale **`_private/`**, in `.gitignore`, **mai versionata né
+  pubblicata**: materiale reale del tirocinio (documenti aziendali, note, conversazioni con il
+  supervisore, versioni con nomi reali). Prima di spostare qualsiasi cosa da `_private/` al repo,
+  va anonimizzata.
 
 ## Lingue
 
 - **Documentazione** (README, decision-log, docs/): **italiano**.
 - **Codice, commenti, nomi di variabili, commit messages:** **inglese**.
-- **Conversazione con Angel:** spagnolo (informale, va bene).
+- **Conversazione con Angel:** spagnolo (informale).
 
-## Riservatezza e anonimizzazione (IMPORTANTE)
+## Decision log
 
-Questo è un **repo "specchio" nuovo, personale, per l'esame**, NON il repo del tirocinio:
-- NON menzionare mai il nome reale del progetto né l'azienda in codice, docs, commit messages, nomi di file o commenti. Il progetto si chiama solo **TINAT**.
-- NON copiare codice, dati, pesi di modelli o documenti proprietari dell'azienda.
-- **Migrazione selettiva:** dal progetto locale entra solo ciò che è di Angel e/o pubblico (dataset da internet come IP102, codice scritto da Angel, struttura ridefinita da zero). Ogni "pezzo" migrato = un commit dedicato con messaggio descrittivo.
-- Le decisioni possono essere descritte in modo generico ("il supervisore del tirocinio ha indicato…" senza nomi né dettagli riservati).
-- Prima di ogni commit, controllare che non ci siano riferimenti al nome reale, all'azienda, a URL interni o a persone (fare un `grep` se serve).
-
-## Struttura del repository
-
-```
-TINAT/
-├── README.md                  # descrizione del progetto (segue il template della docente)
-├── CLAUDE.md                  # questo file (contesto per l'assistente)
-├── src/                       # codice del progetto (preparazione dati, training, inferenza)
-├── tests/                     # pytest — test di base su src/
-├── data/                      # dataset locale (NON versionato; vedi .gitignore)
-├── docs/
-│   └── decision-log.md        # log delle decisioni (formato sotto)
-└── requirements.txt           # dipendenze con versioni pinnate
-```
-
-Struttura minima e volutamente essenziale: solo ciò che serve a un repo di modello reale. Cartelle come `notebooks/` o `models/` verranno aggiunte solo quando conterranno materiale vero, non come scheletri vuoti.
-
-## Template del README.md (obbligatorio, dalla docente)
-
-Il README deve contenere queste sezioni, in italiano:
-
-1. **Project name/idea**
-2. **Setup / How to run this project** — comandi per avviare, requisiti di sistema (versione Python, librerie esterne). *Niente è scontato:* scrivere come per chi non ha mai visto il progetto.
-3. **Spiegazione del progetto** — obiettivo, problema che risolve.
-4. **Dati** — origine del dataset, perché quello, caratteristiche, gestione di dati mancanti/malformattati.
-5. **Ciclo di vita ML** — come si applicano al progetto: raccolta dati, training, validazione, deploy, monitoring.
-6. **MLOps** — cosa monitorare; criteri per il re-training (es. drift stagionale delle immagini, nuovi falsi negativi, soglia di mAP).
-7. **Rischi, assunzioni e limiti** — limiti identificati, assunzioni fatte, stato onesto del progetto (funzionante end-to-end o no, difficoltà incontrate, come ampliarlo).
-8. **Ulteriori informazioni**
-
-## Formato del decision-log.md
-
-Ogni voce così:
+Le decisioni tecniche e organizzative rilevanti vanno registrate in `docs/decision-log.md` con:
+(1) la decisione, (2) le alternative considerate, (3) perché è stata scelta questa. Formato di ogni
+voce:
 
 ```markdown
 ## [YYYY-MM-DD] Titolo breve della decisione
@@ -70,45 +52,48 @@ Ogni voce così:
 **Contesto:** qual era il problema/bivio.
 **Alternative considerate:** A, B, C — e perché sono state scartate.
 **Decisione:** cosa è stato scelto.
-**Motivazione:** perché questa e non le altre (costi, tempo, vincoli, dati disponibili).
+**Motivazione:** perché questa e non le altre.
 **Conseguenze/rischi:** cosa comporta questa scelta.
 ```
 
-Decisioni già note da registrare (chiedere dettagli ad Angel se mancano):
-- Repo nuovo "specchio" anonimizzato, **personale e indipendente**, con nome generico "TINAT" (alternative scartate: usare il repo aziendale originale; contribuire al repo condiviso di classe). Motivo: riservatezza del tirocinio + controllo totale sullo storico dei commit; la demo avviene in classe dal computer di Angel, con eventuale invito alla docente come collaboratrice.
-- Migrazione selettiva dal progetto locale (pezzo per pezzo, un commit per pezzo) invece di un clone completo. Motivo: controllo su cosa entra nel repo + storico di commit granulare come evidenza di processo.
-- Scelta di YOLOv8 (vs altre architetture di detection).
-- Partire da IP102 / classe Miridae come base per il fine-tuning verso Helopeltis.
-- Struttura minima (solo src/tests/data/docs) invece di uno scheletro con molte cartelle vuote.
-- Strategia di branching Git (vedi sotto).
-- Lingue: docs IT / codice EN.
+## Struttura del repository
 
-## Workflow Git (DevOps-Agile)
+```
+TINAT/
+├── README.md                  # descrizione del progetto
+├── CLAUDE.md                  # questo file (contesto per l'assistente)
+├── src/                       # codice (preparazione dati, training, inferenza, fusione)
+├── tests/                     # pytest — test di base su src/
+├── notebooks/                 # fine-tuning detector (01) e classificatore di stadio (02)
+├── data/                      # dataset pubblico versionato (~5 MB)
+├── models/                    # artefatti di risultato del training (pesi esclusi)
+├── docs/                      # README di dominio, model card, decision-log
+├── .github/                   # CI (GitHub Actions) + template di PR
+├── requirements.txt
+└── pytest.ini
+```
 
-- **Branching:** `main` protetto; una branch per feature/task (`feature/...`, `docs/...`, `fix/...`); merge via commit descrittivi (o PR se Angel vuole simulare il flusso completo).
-- **Commit messages:** in inglese, formato convenzionale: `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`, `chore: ...`.
-- **Commit piccoli e frequenti** — la storia dei commit è un artefatto del processo che la docente può guardare.
-- **`.gitignore`:** escludere dati pesanti, pesi dei modelli, `__pycache__/`, ambienti virtuali.
+Struttura minima e volutamente essenziale: si aggiungono cartelle solo quando contengono materiale
+vero, non scheletri vuoti.
 
-## Testing
+## Workflow Git
 
-- Usare **pytest** (visto nel corso). Minimo: test sulle funzioni di `src/` (es. preprocessing, parsing delle annotazioni).
-- I test girano con `pytest tests/` dalla root.
-- Anche "abbiamo pochi test perché X" è una decisione da loggare — onestà > copertura finta.
+- **Branching:** GitHub Flow leggero — `main` sempre verde; ogni modifica su un branch a vita breve
+  con prefisso di tipo (`feature/`, `fix/`, `docs/`, `ci/`, `build/`); merge su `main` via Pull
+  Request con CI verde.
+- **Commit messages:** in inglese, formato convenzionale (`feat:`, `fix:`, `docs:`, `test:`,
+  `chore:`). Commit piccoli e frequenti.
+- **`.gitignore`:** esclude dati pesanti, pesi dei modelli, `__pycache__/`, ambienti virtuali,
+  `_private/`.
+- **Angel fa i commit e i push da solo:** preparare i cambiamenti e dargli il comando; non eseguire
+  `git commit`/`git push` senza richiesta esplicita.
 
 ## Come deve lavorare Claude Code in questo repo
 
-1. **Prima di ogni modifica rilevante:** proporre la decisione ad Angel e, se approvata, aggiungere la voce al decision-log.
-2. **Non inventare storia di progetto:** se manca un'informazione (date, motivazioni reali, feedback dei supervisori), **chiedere ad Angel** invece di riempire con dettagli plausibili ma falsi.
-3. **Priorità dei task:** documentazione e struttura > codice funzionante > performance del modello.
-4. **Output onesti:** se qualcosa non funziona end-to-end, documentarlo nella sezione "Rischi, assunzioni e limiti", non nasconderlo.
-5. **Mantenere le lingue:** docs in italiano, codice in inglese.
-
-## Backlog iniziale (ordine suggerito)
-
-- [x] Inizializzare repo personale "TINAT" con struttura di cartelle + .gitignore + requirements.txt
-- [x] README.md con il template (in stile progetto reale, senza cornice "esame/simulazione")
-- [x] docs/decision-log.md con le prime voci (repo personale, migrazione selettiva, YOLOv8, IP102/Miridae)
-- [ ] Script minimo in src/ (es. download/preparazione dati IP102 classe Miridae)
-- [ ] 2–3 test pytest sulle funzioni di src/
-- [ ] Primo training di prova (YOLOv8n su CPU) e log dei risultati
+1. **Prima di ogni modifica rilevante:** proporre la decisione ad Angel e, se approvata, aggiungere
+   la voce al decision-log.
+2. **Non inventare storia di progetto:** se manca un'informazione (date, motivazioni reali, feedback
+   del supervisore), **chiedere ad Angel** invece di riempire con dettagli plausibili ma falsi.
+3. **Output onesti:** se qualcosa non funziona end-to-end, documentarlo nella sezione "Rischi,
+   assunzioni e limiti" del README, non nasconderlo.
+4. **Mantenere le lingue:** docs in italiano, codice in inglese.
