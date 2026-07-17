@@ -1,11 +1,10 @@
 """
 spatial.py — WHERE as periphery-vs-core infestation mapping
 
-The plant-zone framing of WHERE (Attraction / Retention / Efficiency) answers
-"which part of the plant". This module answers the question the field actually
-needs: **is the pest only at the edge of the monitored area, or has it reached
-the core?** A pest kept to the periphery means the surrounding ecosystem design
-is holding; a pest deep inside the system is a real breach.
+This module is the project's WHERE dimension: **is the pest only at the edge of
+the monitored area, or has it reached the core?** A pest kept to the periphery
+means the surrounding ecosystem design is holding; a pest deep inside the
+system is a real breach.
 
 It works on the *aggregate* of detections (their positions across the field),
 not on a single frame — the spatial counterpart of the temporal aggregation in

@@ -1,21 +1,22 @@
 """
 fusion.py — WHO×WHERE×WHEN Fusion Engine
 
-Combines insect detections (WHO) with plant-zone detections (WHERE) and the
-current flush stage (WHEN) into Observation events.
+Combines insect detections (WHO) with their position (WHERE) and the current
+flush stage (WHEN) into Observation events. Each detection's WHERE is the
+centre of its bounding box; the periphery-vs-core verdict is a field-level
+aggregate over many Observations (see src/spatial.py).
 
 Architecture note: this runs server-side in the inference service. A mobile app
-uploads media → the service runs the two YOLO/classifier models → this module
+uploads media → the service runs the detector + flush classifier → this module
 fuses the raw predictions → Observations are stored in a database.
 
 Pipeline:
     [YOLOv8-n insect detector]  → list[InsectDetection]
-    [Plant zone segmenter]       → list[ZoneDetection]
     [Flush-stage classifier]     → str  (new_flush | mature_leaf)
                                     ↓
                             FusionEngine.fuse_frame()
                                     ↓
-                             list[Observation]
+                             list[Observation]   (each with a position)
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from src.who_where_when import Observation, ZONES, FLUSH_STAGES
+from src.who_where_when import Observation, FLUSH_STAGES
 
 _MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 
@@ -247,27 +248,19 @@ class InsectDetection:
     confidence: float    # [0, 1]
 
 
-@dataclass
-class ZoneDetection:
-    """One predicted plant-zone region (from segmentation or rule-based mapping)."""
-    zone: str            # "Attraction" | "Retention" | "Efficiency"
-    bbox: BBox
-    confidence: float
-
-
 # ── Fusion engine ────────────────────────────────────────────────────────────
 
 class FusionEngine:
     """
-    Fuses InsectDetections + ZoneDetections + flush stage → Observations.
+    Fuses InsectDetections + flush stage → Observations (each with a position).
 
     Usage (single image):
         engine = FusionEngine()
-        obs = engine.fuse_frame(insects, zones, stage="new_flush", gps=(...))
+        obs = engine.fuse_frame(insects, stage="new_flush")
 
     Usage (video / frame stream):
         for frame in frames:
-            stable_obs = engine.push_frame(frame.insects, frame.zones, stage)
+            stable_obs = engine.push_frame(frame.insects, stage)
         review = engine.drain_review_queue()
     """
 
@@ -280,16 +273,15 @@ class FusionEngine:
     def fuse_frame(
         self,
         insects: list[InsectDetection],
-        zones: list[ZoneDetection],
         stage: str,
         timestamp: Optional[datetime] = None,
-        gps: Optional[tuple] = None,
     ) -> list[Observation]:
         """
         Fuse a single frame's detections into Observation records.
 
-        Low-confidence insects (< LOW_CONF_THRESHOLD) are not published;
-        they are appended to the review queue for human labelling / retraining.
+        Each Observation's WHERE is the centre of the insect's bounding box.
+        Low-confidence insects (< LOW_CONF_THRESHOLD) are not published; they
+        are appended to the review queue for human labelling / retraining.
         """
         if timestamp is None:
             timestamp = datetime.now()
@@ -306,28 +298,17 @@ class FusionEngine:
                 })
                 continue
 
-            matched = self._best_zone(ins.bbox, zones)
-            if matched is None:
-                self._review_queue.append({
-                    "reason":     "no_zone_match",
-                    "label":      ins.label,
-                    "confidence": round(ins.confidence, 4),
-                    "timestamp":  timestamp.isoformat(),
-                })
-                continue
-
             try:
                 obs = Observation(
                     insect=ins.label,
-                    zone=matched.zone,
                     stage=stage,
                     confidence=ins.confidence,
+                    position=(ins.bbox.cx, ins.bbox.cy),
                     timestamp=timestamp,
-                    gps=gps,
                 )
                 observations.append(obs)
             except ValueError:
-                # Unknown zone or stage — skip silently; caller should validate inputs.
+                # Unknown stage — skip silently; caller should validate inputs.
                 pass
 
         return observations
@@ -335,7 +316,6 @@ class FusionEngine:
     def push_frame(
         self,
         insects: list[InsectDetection],
-        zones: list[ZoneDetection],
         stage: str,
         window: int = 5,
         **kwargs,
@@ -345,8 +325,10 @@ class FusionEngine:
 
         A detection must appear in at least 2 of the last `window` frames to be
         published — this suppresses spurious hits from blurry or partial frames.
+        Detections are grouped by insect, stage and (coarse) position, so two
+        insects in different parts of the frame stay distinct events.
         """
-        frame_obs = self.fuse_frame(insects, zones, stage, **kwargs)
+        frame_obs = self.fuse_frame(insects, stage, **kwargs)
         self._frame_buffer.append(frame_obs)
         if len(self._frame_buffer) > window:
             self._frame_buffer.pop(0)
@@ -354,7 +336,10 @@ class FusionEngine:
         counts: dict[tuple, list[Observation]] = {}
         for frame in self._frame_buffer:
             for obs in frame:
-                key = (obs.insect, obs.zone, obs.stage)
+                px, py = obs.position if obs.position else (None, None)
+                key = (obs.insect, obs.stage,
+                       round(px, 1) if px is not None else None,
+                       round(py, 1) if py is not None else None)
                 counts.setdefault(key, []).append(obs)
 
         stable: list[Observation] = []
@@ -376,27 +361,3 @@ class FusionEngine:
         """Clear frame buffer and review queue (call between unrelated video clips)."""
         self._frame_buffer.clear()
         self._review_queue.clear()
-
-    # ── private helpers ──────────────────────────────────────────────────────
-
-    @staticmethod
-    def _best_zone(
-        insect_box: BBox,
-        zones: list[ZoneDetection],
-    ) -> Optional[ZoneDetection]:
-        """
-        Return the zone that best explains where the insect is.
-
-        Priority:
-          1. Zone whose bbox contains the insect centroid (spatial containment).
-          2. If no containment match, fall back to highest IoU zone.
-        """
-        cx, cy = insect_box.cx, insect_box.cy
-        contained = [z for z in zones if z.bbox.contains_point(cx, cy)]
-        if contained:
-            return max(contained, key=lambda z: z.confidence)
-
-        if zones:
-            return max(zones, key=lambda z: insect_box.iou(z.bbox))
-
-        return None

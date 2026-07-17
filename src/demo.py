@@ -1,14 +1,14 @@
 """
-demo.py — End-to-end pipeline demo with synthetic data
+demo.py — End-to-end pipeline demo
 
 Simulates the full server-side inference pipeline:
-  mock detector output → FusionEngine → Observations → JSON export
+  detector output → FusionEngine → Observations → spatial verdict → JSON export
 
 Run (from the repository root):
     python -m src.demo
 
-No models or dataset needed — all detections are hand-crafted to cover the
-interesting cases (alert, non-alert, low-confidence review).
+Demos 1-3 need no models or dataset (hand-crafted detections). Demo 4 runs the
+real detector + flush classifier on dataset images when they are available.
 """
 
 import json
@@ -18,8 +18,9 @@ from pathlib import Path
 from src.who_where_when import FLUSH_STAGES
 from src.fusion import (
     FusionEngine, FlushClassifier, HelopeltisDetector,
-    InsectDetection, ZoneDetection, BBox,
+    InsectDetection, BBox,
 )
+from src.spatial import FieldExtent, assess_infestation
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _REAL_IMAGE_DIR = _REPO_ROOT / "data" / "raw" / "helopeltis" / "test" / "images"
@@ -48,22 +49,31 @@ def resolve_stage(image_rgb=None) -> str:
     return _FALLBACK_STAGE
 
 
+def where_verdict(observations, extent=None):
+    """Run the spatial WHERE (periphery vs core) over pest observations.
+
+    Uses the detection positions carried by each Observation. ``extent`` is the
+    monitored area; for a single image the frame ([0,1]²) is used, so the
+    verdict reads "edge vs centre of the frame". With field-level GPS positions
+    the same function gives true field periphery/core.
+    """
+    if extent is None:
+        extent = FieldExtent(0.0, 0.0, 1.0, 1.0)   # the frame is the monitored area
+    points = [o.position for o in observations if o.role == "pest" and o.position]
+    report = assess_infestation(points, extent=extent)
+    print(f"\nWHERE (spatial): {report.verdict}")
+    print(f"  periphery={report.n_periphery}  core={report.n_core}  (of {report.total} pest)")
+    return report
+
+
 # ── Mock model outputs ───────────────────────────────────────────────────────
 
 def mock_insects() -> list[InsectDetection]:
     """Simulates YOLOv8-n predictions on a tea-garden image."""
     return [
-        InsectDetection("Helopeltis spp.", BBox(0.30, 0.35, 0.55, 0.65), confidence=0.82),
+        InsectDetection("Helopeltis spp.", BBox(0.42, 0.45, 0.58, 0.60), confidence=0.82),  # centre → core
         InsectDetection("bees",            BBox(0.60, 0.10, 0.80, 0.35), confidence=0.91),
         InsectDetection("Thrips",          BBox(0.10, 0.70, 0.25, 0.85), confidence=0.58),  # → review
-    ]
-
-
-def mock_zones() -> list[ZoneDetection]:
-    """Simulates plant-zone segmentation on the same image."""
-    return [
-        ZoneDetection("Efficiency", BBox(0.20, 0.25, 0.65, 0.75), confidence=0.88),
-        ZoneDetection("Attraction", BBox(0.55, 0.05, 0.90, 0.40), confidence=0.79),
     ]
 
 
@@ -79,10 +89,8 @@ def demo_image():
 
     observations = engine.fuse_frame(
         insects=mock_insects(),
-        zones=mock_zones(),
         stage=stage,
         timestamp=datetime(2026, 6, 16, 9, 30),
-        gps=(0.0, 0.0),   # example coordinates
     )
 
     print(f"\nFlush stage : {stage} — {FLUSH_STAGES[stage]}")
@@ -91,9 +99,11 @@ def demo_image():
     for obs in observations:
         print(obs.summary())
 
+    where_verdict(observations)
+
     review = engine.drain_review_queue()
     if review:
-        print(f"Queued for review ({len(review)} item/s):")
+        print(f"\nQueued for review ({len(review)} item/s):")
         for item in review:
             print(f"  [{item['label']}] conf={item['confidence']:.2f} — {item['reason']}")
 
@@ -114,14 +124,14 @@ def demo_video():
     # After the window, bee should be filtered out (single-frame hit).
     frames = []
     for i in range(5):
-        insects = [InsectDetection("Helopeltis spp.", BBox(0.30, 0.35, 0.55, 0.65), 0.80 + i * 0.01)]
+        insects = [InsectDetection("Helopeltis spp.", BBox(0.42, 0.45, 0.58, 0.60), 0.80 + i * 0.01)]
         if i == 0:
             insects.append(InsectDetection("bees", BBox(0.60, 0.10, 0.80, 0.35), 0.88))
-        frames.append((insects, mock_zones()))
+        frames.append(insects)
 
     stable = []
-    for insects, zones in frames:
-        stable = engine.push_frame(insects, zones, stage, window=5)
+    for insects in frames:
+        stable = engine.push_frame(insects, stage, window=5)
 
     print(f"\nStable observations after {len(frames)} frames:\n")
     for obs in stable:
@@ -147,11 +157,6 @@ def demo_real(max_images: int = 3):
     Needs the ONNX detector (``models/helopeltis_phase1.onnx``) and the optional
     heavy deps (onnxruntime, Pillow, numpy). When they are missing the function
     skips cleanly instead of failing, so the stdlib-only demos above still run.
-
-    The official WHERE is now spatial (periphery vs core, see spatial.py and the
-    decision-log); the plant-zone segmenter was retired. ``Observation`` still
-    requires a zone value, so this passes a full-frame ``Efficiency`` zone as an
-    explicit stand-in — it does not represent a trained zone model.
     """
     print("\n" + "=" * 60)
     print("DEMO 4 — Real inference on dataset images")
@@ -176,15 +181,12 @@ def demo_real(max_images: int = 3):
         return
 
     engine = FusionEngine()
-    # Full-frame zone: required by Observation, not a trained zone model. The
-    # official WHERE is spatial (spatial.py), which needs field positions.
-    full_frame_zone = [ZoneDetection("Efficiency", BBox(0.0, 0.0, 1.0, 1.0), confidence=1.0)]
 
     for path in images:
         image_rgb = np.array(Image.open(path).convert("RGB"))
         insects = detector.detect(image_rgb)
         stage = resolve_stage(image_rgb)
-        observations = engine.fuse_frame(insects, full_frame_zone, stage=stage)
+        observations = engine.fuse_frame(insects, stage=stage)
 
         print(f"\n{path.name}")
         print(f"  detector : {len(insects)} insect(s), stage={stage}")

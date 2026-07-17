@@ -119,7 +119,7 @@ det = HelopeltisDetector()
 insects = det.detect(image_rgb, imgsz=320)   # -> list[InsectDetection]
 ```
 
-Le rilevazioni vengono poi combinate dal `FusionEngine` con la zona della pianta e lo stadio di flush per produrre `Observation` (metrica WHO×WHERE×WHEN). Le rilevazioni a bassa confidenza (< 0.65) vanno nella coda "Needs Review".
+Le rilevazioni vengono poi combinate dal `FusionEngine` con la posizione (centro del box) e lo stadio di flush per produrre `Observation` (metrica WHO×WHERE×WHEN); il verdetto spaziale periferia/nucleo è calcolato da `spatial.py`. Le rilevazioni a bassa confidenza (< 0.65) vanno nella coda "Needs Review".
 
 ---
 

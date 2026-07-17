@@ -120,10 +120,10 @@ Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponi
 
 **Stato onesto del progetto**
 
-- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → export JSON). Verificata da `pytest` (34 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
+- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → verdetto spaziale → export JSON). Verificata da `pytest` (35 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
 - **Inferenza reale del detector (WHO) integrata:** `HelopeltisDetector` esegue il modello YOLOv8-n via ONNX Runtime su CPU (coordinate normalizzate + *non-max suppression*). La `demo_real` di [`src/demo.py`](src/demo.py) gira sulle immagini reali del test set (`data/raw/helopeltis/test/`): detector reale → classificatore di stadio reale → `Observation`. Se il file ONNX (binario pesante, fuori da git) o `onnxruntime` mancano, la demo salta questo passo senza errori.
 - **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
-- **WHERE deciso (spaziale):** la definizione ufficiale è **periferia vs nucleo** ([`src/spatial.py`](src/spatial.py), 14 test); il vecchio segmentatore di zone della pianta è stato **ritirato** (mai costruito, vedi decision-log). La logica è pronta e testata ma richiede le posizioni delle rilevazioni sul campo: si attiva con le foto reali, non con le foto da internet.
+- **WHERE spaziale, integrato:** ogni `Observation` porta la **posizione** della rilevazione (centro del box) e `spatial.assess_infestation` ([`src/spatial.py`](src/spatial.py), 14 test) ne calcola il verdetto **periferia vs nucleo** — la demo lo esegue davvero, non è codice orfano. Il vecchio segmentatore di zone della pianta è stato **rimosso** dal codice (mai costruito, vedi decision-log). Limite: su una foto la posizione è nel frame; il vero periferia/nucleo del campo richiede le coordinate GPS delle foto reali.
 
 ## Ulteriori informazioni
 
