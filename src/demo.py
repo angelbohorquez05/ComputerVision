@@ -148,9 +148,10 @@ def demo_real(max_images: int = 3):
     heavy deps (onnxruntime, Pillow, numpy). When they are missing the function
     skips cleanly instead of failing, so the stdlib-only demos above still run.
 
-    The plant-zone segmenter (WHERE) is not trained yet, so this uses a
-    full-frame ``Efficiency`` zone as an explicit placeholder — the same gap
-    tracked in the README roadmap.
+    The official WHERE is now spatial (periphery vs core, see spatial.py and the
+    decision-log); the plant-zone segmenter was retired. ``Observation`` still
+    requires a zone value, so this passes a full-frame ``Efficiency`` zone as an
+    explicit stand-in — it does not represent a trained zone model.
     """
     print("\n" + "=" * 60)
     print("DEMO 4 — Real inference on dataset images")
@@ -175,7 +176,8 @@ def demo_real(max_images: int = 3):
         return
 
     engine = FusionEngine()
-    # Whole-frame defense zone: honest stand-in until the zone segmenter exists.
+    # Full-frame zone: required by Observation, not a trained zone model. The
+    # official WHERE is spatial (spatial.py), which needs field positions.
     full_frame_zone = [ZoneDetection("Efficiency", BBox(0.0, 0.0, 1.0, 1.0), confidence=1.0)]
 
     for path in images:

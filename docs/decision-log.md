@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-17] Chiusura dello scope: WHERE = periferia/nucleo, ritiro del segmentatore di zone
+
+**Contesto:** la dimensione **WHERE** era rimasta aperta e ambigua. Da un lato il codice usava un segmentatore di **zone della pianta** (Attraction / Retention / Efficiency) che **non è mai stato costruito**: la `demo_real` lo sostituiva con una zona `Efficiency` a frame intero come placeholder. Dall'altro il supervisore del tirocinio aveva indicato che l'uso reale utile è **spaziale**: sapere se il parassita è solo alla **periferia** del campo (l'ecosistema tiene) o è arrivato al **nucleo** (problema reale). Il progetto stava accumulando concetti (un secondo WHERE in `spatial.py`) senza chiuderne nessuno.
+
+**Alternative considerate:**
+- *Costruire il segmentatore di zone A/R/E* — scartato: richiede annotazioni di segmentazione della pianta che non esistono nei dati pubblici; sarebbe un altro modello da addestrare senza dati, cioè altro scope aperto.
+- *Tenere entrambe le letture di WHERE* — scartato: due definizioni della stessa dimensione, nessuna completa, è esattamente la dispersione da chiudere.
+- *Adottare periferia/nucleo (`spatial.py`) come unica definizione di WHERE* — scelto.
+
+**Decisione:** WHERE ufficiale del progetto = **periferia vs nucleo** (`src/spatial.py`, geometria pura stdlib, coperta da 14 test). Il segmentatore di zone A/R/E è **ritirato** come idea non realizzata. Con questa voce lo **scope del progetto si considera concluso** a ciò che funziona sui dati disponibili: (1) rilevamento dell'insetto e (2) stadio della foglia (2 stadi). Nessun nuovo modulo concettuale viene aggiunto; il lavoro residuo è di packaging e onestà della documentazione, non di nuove funzioni.
+
+**Motivazione:** una definizione sola e coerente con l'uso reale indicato dal supervisore, invece di due a metà. Chiudere lo scope evita che il progetto cresca all'infinito ai bordi senza mai convergere.
+
+**Conseguenze/rischi:** `spatial.py` è pronto e testato, ma la sua applicazione richiede le **posizioni delle rilevazioni sul campo** (coordinate), che le foto pubbliche da internet non hanno: quindi il WHERE spaziale è dimostrato sui test unitari, non sui dati attuali, e si attiverà con le foto reali dal campo. È un limite dichiarato, coerente con il domain gap già noto. Il codice della metrica ecologica a zone (`ZONES` in `who_where_when.py`) resta nel repository come parte dello storico ma non è più la definizione ufficiale di WHERE.
+
 ## [2026-07-15] Valutazione del detector sul percorso integrato (non sui log di training)
 
 **Contesto:** le metriche del detector nel README (mAP@0.5 ≈ 0.995) provenivano dalla validazione di Ultralytics al momento del training. Ma da quando l'inferenza reale gira attraverso `HelopeltisDetector` (ONNX Runtime + NMS), quel percorso non era mai stato misurato contro il ground truth: correttezza delle coordinate, soglia di confidenza e NMS potevano divergere dai numeri di training senza che nessuno se ne accorgesse.
