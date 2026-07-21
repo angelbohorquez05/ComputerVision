@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-21] Stadio `dormant` fuori scope: il classificatore WHEN resta a 2 classi (definitivo)
+
+**Contesto:** la dimensione **WHEN** era stata avviata a 2 classi (`new_flush`, `mature_leaf`), con la classe `dormant` (pianta senza germogli) segnata come *prossimo passo / rimandata*: da aggiungere "quando esisterà un dataset (iNaturalist)". Questa formulazione teneva aperta una terza classe che, in pratica, non aveva né dati né valore per il pilot: `dormant` è lo stadio in cui l'attività di Helopeltis è **minima** (nessun germoglio tenero da attaccare), e non è emerso un dataset pubblico adatto. Restava quindi come deuda documentaria, non come lavoro reale.
+
+**Alternative considerate:**
+- *Tenere `dormant` come "prossimo passo" / roadmap* — scartato: la stessa dispersione già chiusa per WHERE. Una classe senza dati e a basso valore ecologico, tenuta aperta a tempo indefinito, è scope che non converge.
+- *Raccogliere/curare un dataset `dormant` da iNaturalist e passare a 3 classi* — scartato: costo di raccolta e ri-training per la fase meno informativa del ciclo; l'effetto sulla metrica utile (parassita su germoglio tenero) è trascurabile.
+- *Dichiarare `dormant` fuori scope e fissare 2 classi come scope definitivo* — scelto.
+
+**Decisione:** la classe `dormant` è **fuori scope**. Il classificatore WHEN resta a **2 classi** (`new_flush` / `mature_leaf`) come scope definitivo del pilot, non come tappa intermedia. Aggiornati docs e commenti che la descrivevano come "rimandata/prossimo passo" (README, model-card-flush-stage, `data/raw/flush_stages/README.md`, notebook 02, docstring di `src/train_flush_stage.py` e `src/fusion.py`) per dichiararla un'esclusione consapevole. Il codice era già a 2 classi (`FLUSH_STAGES` in `who_where_when.py`, `FlushClassifier.CLASSES`): nessuna logica cambia. Il fallback ad `argmax` di `_decide` resta come robustezza generica per `len(CLASSES) != 2`, senza più citare `dormant` come esempio.
+
+**Motivazione:** coerente con il principio già applicato a WHERE ("se non serve o non si usa, è spazzatura"): meglio uno scope chiuso e onesto (2 classi, la classe ad alto rischio `new_flush` coperta) che una terza classe aperta senza dati né valore. `dormant` va nella lista delle esclusioni consapevoli del README, accanto a tracking dei singoli insetti, suolo N-P-K/pH e GPS in tempo reale.
+
+**Conseguenze/rischi:** se in futuro il dominio richiedesse davvero di distinguere la fase dormiente (es. per un'altra coltura o un altro parassita), andrà riaperta con un dataset dedicato; il wrapper la reggerebbe (>2 classi ⇒ `argmax`). Per il pilot corrente (tè + Helopeltis) l'esclusione non toglie valore alla metrica. Nessun impatto sui test (la logica era già a 2 classi).
+
 ## [2026-07-17] Chiusura dello scope: WHERE = periferia/nucleo, ritiro del segmentatore di zone
 
 **Contesto:** la dimensione **WHERE** era rimasta aperta e ambigua. Da un lato il codice usava un segmentatore di **zone della pianta** (Attraction / Retention / Efficiency) che **non è mai stato costruito**: la `demo_real` lo sostituiva con una zona `Efficiency` a frame intero come placeholder. Dall'altro il supervisore del tirocinio aveva indicato che l'uso reale utile è **spaziale**: sapere se il parassita è solo alla **periferia** del campo (l'ecosistema tiene) o è arrivato al **nucleo** (problema reale). Il progetto stava accumulando concetti (un secondo WHERE in `spatial.py`) senza chiuderne nessuno.

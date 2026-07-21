@@ -136,8 +136,8 @@ class FlushClassifier:
     FusionEngine can still run in demo mode with a hardcoded stage.
     """
 
-    # Trained on 2 classes for now; ``dormant`` is deferred until a dedicated
-    # dataset exists (see data/raw/flush_stages/README.md and the decision-log).
+    # Two classes are the final scope for this pilot (a ``dormant`` stage is out
+    # of scope — least pest activity, no public dataset; see the decision-log).
     # The order MUST match the label order used in src/train_flush_stage.py.
     CLASSES = ["new_flush", "mature_leaf"]
 
@@ -185,8 +185,8 @@ class FlushClassifier:
         """Map raw logits to a stage label.
 
         For the 2-class model the high-risk class ``new_flush`` is predicted
-        whenever ``P(new_flush) >= NEW_FLUSH_THRESHOLD`` (not plain argmax). Once
-        a third class such as ``dormant`` is added, it falls back to argmax.
+        whenever ``P(new_flush) >= NEW_FLUSH_THRESHOLD`` (not plain argmax). For
+        any other number of classes it falls back to argmax.
         """
         import math
         logits = [float(x) for x in logits]

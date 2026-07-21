@@ -98,18 +98,19 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 
 ## Scope e prossimi passi
 
-Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponibili (vedi decision-log, 2026-07-17): rilevamento dell'insetto + stadio della foglia a 2 classi. Ciò che si attiverà quando arriveranno le **foto reali dal campo**:
+Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponibili (vedi decision-log, 2026-07-17 e 2026-07-21): rilevamento dell'insetto + stadio della foglia a 2 classi. Ciò che si attiverà quando arriveranno le **foto reali dal campo**:
 
 - **WHERE spaziale su dati reali:** `spatial.py` classifica periferia/nucleo a partire dalle posizioni delle rilevazioni sul campo (coordinate), oggi non presenti nelle foto da internet.
-- **Terzo stadio `dormant`** per il classificatore (oggi 2 stadi); richiede un dataset dedicato.
 - **Validazione e fine-tuning di dominio** del detector sulle foto reali (il domain gap dichiarato sotto).
+
+**Fuori scope** (esclusioni consapevoli, non lavoro in sospeso): una terza classe `dormant` per il classificatore (fase a bassissima attività di parassiti e senza dataset pubblico), oltre a tracking dei singoli insetti tra i frame, misure chimiche del suolo (N-P-K, pH) e GPS in tempo reale.
 
 ## Rischi, assunzioni e limiti
 
 **Assunzioni**
 
 - Le immagini pubbliche da internet sono un *proxy* accettabile per iniziare, in attesa delle foto reali dal campo (previste tra qualche mese).
-- Il classificatore di stadio (WHEN) copre 2 classi (`new_flush` / `mature_leaf`); lo stadio `dormant` non è ancora classificabile. Se il modello non è presente, la demo usa un fallback esplicito (`new_flush`).
+- Il classificatore di stadio (WHEN) copre 2 classi (`new_flush` / `mature_leaf`), lo scope definitivo del pilot; lo stadio `dormant` è fuori scope (vedi sopra). Se il modello non è presente, la demo usa un fallback esplicito (`new_flush`).
 - Il deploy di destinazione è offline su CPU/mobile (da cui l'export ONNX/TFLite).
 
 **Rischi**
@@ -122,7 +123,7 @@ Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponi
 
 - **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → verdetto spaziale → export JSON). Verificata da `pytest` (35 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
 - **Inferenza reale del detector (WHO) integrata:** `HelopeltisDetector` esegue il modello YOLOv8-n via ONNX Runtime su CPU (coordinate normalizzate + *non-max suppression*). La `demo_real` di [`src/demo.py`](src/demo.py) gira sulle immagini reali del test set (`data/raw/helopeltis/test/`): detector reale → classificatore di stadio reale → `Observation`. Se il file ONNX (binario pesante, fuori da git) o `onnxruntime` mancano, la demo salta questo passo senza errori.
-- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
+- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). Le 2 classi sono lo scope definitivo (la classe `dormant` è fuori scope, vedi sopra).
 - **WHERE spaziale, integrato:** ogni `Observation` porta la **posizione** della rilevazione (centro del box) e `spatial.assess_infestation` ([`src/spatial.py`](src/spatial.py), 14 test) ne calcola il verdetto **periferia vs nucleo** — la demo lo esegue davvero, non è codice orfano. Il vecchio segmentatore di zone della pianta è stato **rimosso** dal codice (mai costruito, vedi decision-log). Limite: su una foto la posizione è nel frame; il vero periferia/nucleo del campo richiede le coordinate GPS delle foto reali.
 
 ## Ulteriori informazioni
