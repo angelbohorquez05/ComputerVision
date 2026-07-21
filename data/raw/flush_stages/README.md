@@ -13,9 +13,10 @@ flush_stages/
 └── mature_leaf/   # foglia matura / non più adatta al tè  → 1031 immagini
 ```
 
-Scelta a **2 classi** (step "coarse: active flush vs not" dell'outline §5.2).
-La terza classe `dormant` (nessun germoglio) non è presente in questo dataset
-e sarà aggiunta in seguito da ricerche su iNaturalist.
+Scelta a **2 classi** (step "coarse: active flush vs not" dell'outline §5.2),
+ed è lo scope definitivo del pilot. Una terza classe `dormant` (nessun germoglio)
+è **fuori scope**: è la fase con meno attività di parassiti e non esiste un
+dataset pubblico adatto (vedi decision-log, 2026-07-21).
 
 ## Fonte dei dati
 

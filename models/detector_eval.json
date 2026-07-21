@@ -1,0 +1,13 @@
+{
+  "path": "integrated ONNX (HelopeltisDetector + NMS)",
+  "n_images": 49,
+  "n_ground_truth": 49,
+  "n_predictions": 49,
+  "conf_threshold": 0.25,
+  "iou_match": 0.5,
+  "true_positives": 49,
+  "false_positives": 0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "ap50": 1.0
+}

@@ -1,8 +1,10 @@
 """Train the flush-stage classifier (Workstream B — the WHEN dimension).
 
 Transfer learning on MobileNetV2 (ImageNet) with a 2-class head:
-``new_flush`` vs ``mature_leaf``. The third stage ``dormant`` is deferred until
-a dedicated dataset exists (see data/raw/flush_stages/README.md).
+``new_flush`` vs ``mature_leaf``. Two classes are the final scope for this
+pilot: the ``new_flush`` (tender shoot) stage is the high-risk Helopeltis
+window, ``mature_leaf`` the low-risk one. A ``dormant`` stage is out of scope
+(least pest activity and no public dataset — see data/raw/flush_stages/README.md).
 
 The script:
   1. builds a deterministic, stratified train/val/test split (fixed seed);

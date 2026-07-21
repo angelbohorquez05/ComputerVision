@@ -31,46 +31,44 @@ def get_role(insect_name: str) -> str:
     return "unknown"
 
 
-# ─── WHERE: plant zones (A/R/E framework) ───
-ZONES: dict[str, str] = {
-    "Attraction":  "Reproductive zone — flowers, tassels",
-    "Retention":   "Resource zone — nectaries, axils, shelter",
-    "Efficiency":  "Defense zone — leaves, stems, trichomes",
-}
-
 # ─── WHEN: tea crop flush stages ───
 FLUSH_STAGES: dict[str, str] = {
-    "dormant":     "Months 0-2  — vegetative, no flush",
-    "new_flush":   "Months 3-4  — tender new shoots, HIGH RISK for Helopeltis",
-    "mature_leaf": "Months 5+   — mature leaf, lower risk",
+    "new_flush":   "Tender new shoot (young leaf) — HIGH RISK for Helopeltis",
+    "mature_leaf": "Mature leaf — lower risk",
 }
 
 
 # ─── The full metric ───
 @dataclass
 class Observation:
+    """A single detection enriched with WHO / WHERE / WHEN.
+
+    WHO   = insect + ecological role (assigned from ECOLOGICAL_ROLE).
+    WHEN  = flush stage (young vs mature leaf).
+    WHERE = ``position`` (x, y) of the detection in the monitored area. The
+            periphery-vs-core verdict is a field-level aggregate computed from
+            the positions of many Observations — see ``src/spatial.py``.
+    """
     # WHO
     insect: str
     role: str = field(init=False)           # assigned automatically from ECOLOGICAL_ROLE
 
-    # WHERE
-    zone: str                               # Attraction / Retention / Efficiency
-
     # WHEN
-    stage: str                              # dormant / new_flush / mature_leaf
+    stage: str                              # new_flush / mature_leaf
 
     # Metadata
     confidence: float
+
+    # WHERE — detection position (frame-normalised coords, or field GPS)
+    position: Optional[tuple] = None
+
     timestamp: datetime = field(default=None)
-    gps: Optional[tuple] = None
 
     def __post_init__(self):
         # Assign role from the registry; falls back to "unknown"
         self.role = get_role(self.insect)
 
-        # Validate zone and stage against known values
-        if self.zone not in ZONES:
-            raise ValueError(f"Unknown zone '{self.zone}'. Valid: {list(ZONES)}")
+        # Validate stage and confidence against known values
         if self.stage not in FLUSH_STAGES:
             raise ValueError(f"Unknown stage '{self.stage}'. Valid: {list(FLUSH_STAGES)}")
         if not (0.0 <= self.confidence <= 1.0):
@@ -80,16 +78,17 @@ class Observation:
             self.timestamp = datetime.now()
 
     def is_alert(self) -> bool:
-        """True when a pest is detected during the new-flush stage (highest risk)."""
+        """True when a pest is detected on a young leaf (highest risk)."""
         return self.role == "pest" and self.stage == "new_flush"
 
     def summary(self) -> str:
         status = "[ALERT]" if self.is_alert() else "[OK]"
+        where = f"({self.position[0]:.2f}, {self.position[1]:.2f})" if self.position else "n/a"
         return (
             f"{status}\n"
             f"  WHO  : {self.insect} ({self.role})\n"
-            f"  WHERE: {self.zone} — {ZONES[self.zone]}\n"
             f"  WHEN : {self.stage} — {FLUSH_STAGES[self.stage]}\n"
+            f"  WHERE: position {where}\n"
             f"  Conf : {self.confidence:.1%}\n"
         )
 
@@ -98,24 +97,23 @@ class Observation:
         return {
             "insect":     self.insect,
             "role":       self.role,
-            "zone":       self.zone,
             "stage":      self.stage,
             "confidence": round(self.confidence, 4),
             "is_alert":   self.is_alert(),
+            "position":   list(self.position) if self.position else None,
             "timestamp":  self.timestamp.isoformat(),
-            "gps":        list(self.gps) if self.gps else None,
         }
 
 
 # ─── Smoke tests ───
 if __name__ == "__main__":
 
-    # Scenario 1: Helopeltis on new flush — dangerous
-    obs1 = Observation(insect="Helopeltis spp.", zone="Efficiency", stage="new_flush",   confidence=0.82)
-    # Scenario 2: bee in attraction zone — healthy
-    obs2 = Observation(insect="bees",            zone="Attraction", stage="new_flush",   confidence=0.91)
-    # Scenario 3: Helopeltis on mature leaf — lower risk
-    obs3 = Observation(insect="Helopeltis spp.", zone="Efficiency", stage="mature_leaf", confidence=0.76)
+    # Scenario 1: Helopeltis on a young leaf — dangerous
+    obs1 = Observation(insect="Helopeltis spp.", stage="new_flush",   confidence=0.82, position=(0.5, 0.5))
+    # Scenario 2: bee — healthy
+    obs2 = Observation(insect="bees",            stage="new_flush",   confidence=0.91, position=(0.7, 0.2))
+    # Scenario 3: Helopeltis on a mature leaf — lower risk
+    obs3 = Observation(insect="Helopeltis spp.", stage="mature_leaf", confidence=0.76, position=(0.1, 0.9))
 
     assert obs1.is_alert(), "obs1 should trigger an alert"
     assert not obs2.is_alert(), "obs2 should not trigger an alert"

@@ -6,17 +6,22 @@ Sistema di *object detection* per individuare e localizzare insetti dannosi del 
 
 > Il progetto nasce in un contesto di **tirocinio** ed è qui pubblicato in versione **anonimizzata** (nessun riferimento a nome reale, azienda, persone o luoghi), usando esclusivamente **dati pubblici**. L'obiettivo del repo è mostrare il processo di sviluppo (organizzazione, decisioni, ciclo di vita ML), non un modello di produzione.
 
-## Descrizione
+## Cosa fa
 
-Il monitoraggio manuale degli insetti dannosi sul tè è lento e soggetto a errore. TINAT automatizza il riconoscimento a partire da un'immagine e, oltre a rilevare l'insetto, ne qualifica l'**interazione ecologica** con la pianta tramite una metrica a tre dimensioni:
+Il compito richiesto è **riconoscere l'insetto dannoso su una coltura specifica (il tè)**. TINAT lo fa in due parti che funzionano end-to-end:
 
-| Dimensione | Domanda | Esempio |
-|-----------|---------|---------|
-| **WHO** | Quale insetto, con quale ruolo? | *Helopeltis* spp. — parassita |
-| **WHERE** | In quale zona della pianta? | Zona di efficienza (foglie/steli) |
-| **WHEN** | In quale stadio della coltura? | `new_flush` — germogli teneri |
+1. **Rileva l'insetto** — da una foglia, localizza l'*Helopeltis* con un *bounding box* ([`src/fusion.py`](src/fusion.py), detector YOLOv8-n via ONNX).
+2. **Classifica lo stadio della foglia** — distingue **foglia giovane** (germoglio tenero, alto rischio) da **foglia matura** ([`src/train_flush_stage.py`](src/train_flush_stage.py), classificatore a 2 stadi).
 
-Un parassita su un germoglio tenero è un evento molto diverso dallo stesso parassita su una foglia matura: questa struttura trasforma le rilevazioni grezze in dati azionabili. La logica è in [`src/who_where_when.py`](src/who_where_when.py).
+Su questi due dati ogni rilevamento viene organizzato in una metrica **WHO×WHERE×WHEN** ([`src/who_where_when.py`](src/who_where_when.py)):
+
+| Dimensione | Domanda | Stato |
+|-----------|---------|-------|
+| **WHO** | Quale insetto? | Detector *Helopeltis* — funziona sui dati disponibili |
+| **WHEN** | In quale stadio la foglia? | 2 stadi: giovane / matura — funziona sui dati disponibili |
+| **WHERE** | Periferia o nucleo del campo? | Logica pronta e testata ([`src/spatial.py`](src/spatial.py)); si attiva con foto dal campo (vedi limiti) |
+
+Il **WHERE** misura se il parassita è solo al **bordo** del campo (l'ecosistema regge) o è arrivato al **centro** (problema reale) — l'uso indicato dal supervisore del tirocinio. Richiede le posizioni delle rilevazioni sul campo, che le foto pubbliche da internet non hanno: perciò è dimostrato dai test, non ancora sui dati attuali.
 
 ## Requisiti e installazione
 
@@ -54,9 +59,10 @@ pytest
 ```
 TINAT/
 ├── src/                  codice del progetto
+│   ├── fusion.py          detector YOLOv8-n (ONNX) + fusione → Observation
 │   ├── who_where_when.py  metrica ecologica WHO×WHERE×WHEN
-│   ├── fusion.py          motore di fusione (detector + zona + stadio → Observation)
-│   └── demo.py            demo end-to-end su dati sintetici
+│   ├── spatial.py         WHERE: periferia vs nucleo del campo
+│   └── demo.py            demo end-to-end
 ├── tests/                test con pytest
 ├── notebooks/            fine-tuning del detector (01) e classificatore di stadio (02)
 ├── data/                 dataset pubblico versionato (~5 MB)
@@ -72,6 +78,7 @@ TINAT/
 - **Input/Output:** immagine RGB → *bounding box* + confidenza.
 - **Export:** ONNX e TFLite (deploy offline su mobile).
 - **Risultati (test set, 49 immagini da internet):** mAP@0.5 ≈ 0.995, precision ≈ 0.99, recall = 1.0. *Da leggere con cautela:* test set piccolo e stesso dominio "internet" del training; il vero banco di prova saranno le foto reali dal campo.
+- **Verifica del percorso integrato:** [`src/evaluate_detector.py`](src/evaluate_detector.py) rimisura il detector *così come gira nella pipeline* (ONNX Runtime + NMS, non i log di training) sul test set: precision/recall/AP@0.5 = 1.0 con una predizione per immagine (49 box per 49 ground truth), risultato salvato in [`models/detector_eval.json`](models/detector_eval.json). Conferma che l'integrazione riproduce le metriche di training — e lo stesso caveat vale: 1.0 su 49 immagini dello stesso dominio va letto con cautela.
 
 Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [model card](docs/model-card.md).
 
@@ -89,18 +96,21 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 - **Criteri di re-training:** calo di mAP sotto soglia; nuovi falsi negativi/positivi; arrivo delle foto reali dal campo; cambio delle condizioni di ripresa.
 - **Coda "Needs Review":** le rilevazioni a bassa confidenza (< 0.65) vengono instradate per revisione e futuro ri-addestramento.
 
-## Roadmap
+## Scope e prossimi passi
 
-- **Terza classe `dormant`** per il classificatore di stadio (oggi a 2 classi: `new_flush` / `mature_leaf`); richiede un dataset dedicato (es. iNaturalist).
-- **Livello di fusione:** combina detection, zona della pianta e stadio in un unico record `Observation`, con aggregazione temporale su più frame.
-- **Validazione su foto reali dal campo** quando disponibili → fine-tuning con dati di dominio.
+Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponibili (vedi decision-log, 2026-07-17 e 2026-07-21): rilevamento dell'insetto + stadio della foglia a 2 classi. Ciò che si attiverà quando arriveranno le **foto reali dal campo**:
+
+- **WHERE spaziale su dati reali:** `spatial.py` classifica periferia/nucleo a partire dalle posizioni delle rilevazioni sul campo (coordinate), oggi non presenti nelle foto da internet.
+- **Validazione e fine-tuning di dominio** del detector sulle foto reali (il domain gap dichiarato sotto).
+
+**Fuori scope** (esclusioni consapevoli, non lavoro in sospeso): una terza classe `dormant` per il classificatore (fase a bassissima attività di parassiti e senza dataset pubblico), oltre a tracking dei singoli insetti tra i frame, misure chimiche del suolo (N-P-K, pH) e GPS in tempo reale.
 
 ## Rischi, assunzioni e limiti
 
 **Assunzioni**
 
 - Le immagini pubbliche da internet sono un *proxy* accettabile per iniziare, in attesa delle foto reali dal campo (previste tra qualche mese).
-- Il classificatore di stadio (WHEN) copre 2 classi (`new_flush` / `mature_leaf`); lo stadio `dormant` non è ancora classificabile. Se il modello non è presente, la demo usa un fallback esplicito (`new_flush`).
+- Il classificatore di stadio (WHEN) copre 2 classi (`new_flush` / `mature_leaf`), lo scope definitivo del pilot; lo stadio `dormant` è fuori scope (vedi sopra). Se il modello non è presente, la demo usa un fallback esplicito (`new_flush`).
 - Il deploy di destinazione è offline su CPU/mobile (da cui l'export ONNX/TFLite).
 
 **Rischi**
@@ -111,9 +121,10 @@ Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [mod
 
 **Stato onesto del progetto**
 
-- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (detector simulato → `Observation` → export JSON). Verificata da `pytest` (11 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
-- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). La terza classe `dormant` è rimandata (manca il dataset).
-- **Non ancora integrato nel repo:** l'inferenza reale con i pesi YOLOv8 (i pesi sono fuori da git, documentati nella model card). È il prossimo passo per chiudere il ciclo su dati reali.
+- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → verdetto spaziale → export JSON). Verificata da `pytest` (35 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
+- **Inferenza reale del detector (WHO) integrata:** `HelopeltisDetector` esegue il modello YOLOv8-n via ONNX Runtime su CPU (coordinate normalizzate + *non-max suppression*). La `demo_real` di [`src/demo.py`](src/demo.py) gira sulle immagini reali del test set (`data/raw/helopeltis/test/`): detector reale → classificatore di stadio reale → `Observation`. Se il file ONNX (binario pesante, fuori da git) o `onnxruntime` mancano, la demo salta questo passo senza errori.
+- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). Le 2 classi sono lo scope definitivo (la classe `dormant` è fuori scope, vedi sopra).
+- **WHERE spaziale, integrato:** ogni `Observation` porta la **posizione** della rilevazione (centro del box) e `spatial.assess_infestation` ([`src/spatial.py`](src/spatial.py), 14 test) ne calcola il verdetto **periferia vs nucleo** — la demo lo esegue davvero, non è codice orfano. Il vecchio segmentatore di zone della pianta è stato **rimosso** dal codice (mai costruito, vedi decision-log). Limite: su una foto la posizione è nel frame; il vero periferia/nucleo del campo richiede le coordinate GPS delle foto reali.
 
 ## Ulteriori informazioni
 

@@ -15,7 +15,7 @@ un fallback esplicito.
 - **Architettura:** MobileNetV2 (transfer learning da ImageNet) con testa lineare a 2 classi.
 - **Input:** immagine RGB 224×224, normalizzazione ImageNet (mean `[0.485, 0.456, 0.406]`, std `[0.229, 0.224, 0.225]`).
 - **Classi (ordine dei logit):** `new_flush` (germoglio tenero, **alto rischio** Helopeltis), `mature_leaf` (foglia matura, basso rischio).
-- **Stadio `dormant`:** rimandato — nessun dataset disponibile (vedi decision-log).
+- **Stadio `dormant`:** **fuori scope** — è la fase con meno attività di parassiti e non esiste un dataset pubblico (vedi decision-log). Le 2 classi sono lo scope definitivo del pilot.
 
 ## Metriche di performance
 
@@ -52,7 +52,7 @@ loss pesata verso `new_flush`.
 
 - Il dataset è per **età/qualità** della foglia, un *proxy* dello stadio di flush.
 - Immagini di dominio pubblico, non foto reali dal campo: possibile *domain gap*.
-- Nessuna classe `dormant`.
+- Nessuna classe `dormant` (fuori scope: fase a bassissima attività di parassiti, senza dataset pubblico).
 
 ## Procedura di training (riproducibilità)
 
@@ -78,15 +78,16 @@ I risultati (report, matrice di confusione, griglia di predizioni) si visualizza
 
 `FlushClassifier` carica `models/flush_stage.tflite` se presente e restituisce lo
 stadio applicando una **soglia di 0.35** su `new_flush` (`NEW_FLUSH_THRESHOLD`); con
-un'eventuale terza classe ricadrebbe su `argmax`. Il preprocessing del wrapper
+un numero di classi diverso da 2 ricadrebbe su `argmax`. Il preprocessing del wrapper
 (normalizzazione ImageNet, NHWC) combacia con quello di training. Verificato con
 `python -m src.demo`.
 
 ## Limiti noti e prossimi passi
 
 - **Recall `new_flush`**: portato a **0.86** (> obiettivo 0.85) tramite la soglia di decisione; migliorabile ancora con più dati o re-training con loss pesata verso `new_flush`.
-- **Aggiungere `dormant`** quando esisterà un dataset (iNaturalist), passando a 3 classi (aggiornare anche `FlushClassifier.CLASSES`).
 - **Validazione su foto reali dal campo** quando disponibili.
 
+**Fuori scope:** una classe `dormant` (fase a bassissima attività di parassiti, senza dataset pubblico — vedi decision-log). Le 2 classi sono lo scope definitivo.
+
 **Ultimo aggiornamento:** luglio 2026
-**Stato:** 2 classi, addestrato e integrato end-to-end; `dormant` e miglioramento del recall come prossimi passi.
+**Stato:** 2 classi (scope definitivo), addestrato e integrato end-to-end; miglioramento del recall come prossimo passo.
