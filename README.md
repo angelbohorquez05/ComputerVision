@@ -1,4 +1,4 @@
-# TINAT — Rilevamento di Helopeltis (Miridae) con YOLOv8
+# Rilevamento di Helopeltis (Miridae) con YOLOv8
 
 [![CI](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml)
 
