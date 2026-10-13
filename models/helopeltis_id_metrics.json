@@ -1,0 +1,233 @@
+{
+  "task": "helopeltis",
+  "classes": [
+    "helopeltis",
+    "other_miridae",
+    "other_insects"
+  ],
+  "roles": {
+    "miridae": "pest",
+    "cicadellidae": "pest",
+    "coreidae": "pest",
+    "aphididae": "pest",
+    "coccinellidae": "beneficial",
+    "araneae": "beneficial",
+    "apidae": "pollinator",
+    "syrphidae": "pollinator",
+    "formicidae": "neutral",
+    "papilionoidea": "pollinator"
+  },
+  "n_images": 2795,
+  "n_test": 420,
+  "group_accuracy": 0.819,
+  "role_accuracy": null,
+  "helopeltis": {
+    "precision": 0.8621,
+    "recall": 0.8721,
+    "true_positives": 75,
+    "false_positives": 12,
+    "false_negatives": 11,
+    "missed_as_other_miridae": 7,
+    "other_miridae_called_helopeltis": 8
+  },
+  "best_epoch": "ft 5",
+  "best_val_loss": 0.4499,
+  "history": [
+    {
+      "phase": "head",
+      "epoch": 1,
+      "train_loss": 0.8522,
+      "train_acc": 0.6237,
+      "val_loss": 0.7516,
+      "val_acc": 0.6635,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 2,
+      "train_loss": 0.6707,
+      "train_acc": 0.7239,
+      "val_loss": 0.6819,
+      "val_acc": 0.7446,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 3,
+      "train_loss": 0.6004,
+      "train_acc": 0.7367,
+      "val_loss": 0.6691,
+      "val_acc": 0.7041,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 4,
+      "train_loss": 0.5789,
+      "train_acc": 0.748,
+      "val_loss": 0.6521,
+      "val_acc": 0.7232,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 5,
+      "train_loss": 0.6101,
+      "train_acc": 0.7362,
+      "val_loss": 0.8068,
+      "val_acc": 0.6038,
+      "improved": false
+    },
+    {
+      "phase": "head",
+      "epoch": 6,
+      "train_loss": 0.6136,
+      "train_acc": 0.7428,
+      "val_loss": 0.6673,
+      "val_acc": 0.7542,
+      "improved": false
+    },
+    {
+      "phase": "head",
+      "epoch": 7,
+      "train_loss": 0.5815,
+      "train_acc": 0.7536,
+      "val_loss": 0.6517,
+      "val_acc": 0.7494,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 8,
+      "train_loss": 0.5704,
+      "train_acc": 0.7582,
+      "val_loss": 0.6521,
+      "val_acc": 0.7518,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 1,
+      "train_loss": 0.563,
+      "train_acc": 0.7618,
+      "val_loss": 0.5682,
+      "val_acc": 0.7661,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 2,
+      "train_loss": 0.3554,
+      "train_acc": 0.8482,
+      "val_loss": 0.4593,
+      "val_acc": 0.8186,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 3,
+      "train_loss": 0.315,
+      "train_acc": 0.864,
+      "val_loss": 0.5495,
+      "val_acc": 0.7852,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 4,
+      "train_loss": 0.2499,
+      "train_acc": 0.8906,
+      "val_loss": 0.4812,
+      "val_acc": 0.8138,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 5,
+      "train_loss": 0.1964,
+      "train_acc": 0.9223,
+      "val_loss": 0.4499,
+      "val_acc": 0.8568,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 6,
+      "train_loss": 0.184,
+      "train_acc": 0.9202,
+      "val_loss": 0.5261,
+      "val_acc": 0.8282,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 7,
+      "train_loss": 0.1902,
+      "train_acc": 0.9177,
+      "val_loss": 0.5807,
+      "val_acc": 0.8329,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 8,
+      "train_loss": 0.1448,
+      "train_acc": 0.9422,
+      "val_loss": 0.4997,
+      "val_acc": 0.8353,
+      "improved": false
+    }
+  ],
+  "augmentation": "RandomResizedCrop(0.6-1.0) + flip + rotation(15) + jitter(0.3)",
+  "per_class": {
+    "helopeltis": {
+      "precision": 0.8620689655172413,
+      "recall": 0.872093023255814,
+      "f1-score": 0.8670520231213873,
+      "support": 86.0
+    },
+    "other_miridae": {
+      "precision": 0.7086092715231788,
+      "recall": 0.816793893129771,
+      "f1-score": 0.7588652482269503,
+      "support": 131.0
+    },
+    "other_insects": {
+      "precision": 0.8901098901098901,
+      "recall": 0.7980295566502463,
+      "f1-score": 0.8415584415584415,
+      "support": 203.0
+    },
+    "accuracy": 0.819047619047619,
+    "macro avg": {
+      "precision": 0.8202627090501035,
+      "recall": 0.8289721576786104,
+      "f1-score": 0.8224919043022597,
+      "support": 420.0
+    },
+    "weighted avg": {
+      "precision": 0.8277572697531591,
+      "recall": 0.819047619047619,
+      "f1-score": 0.82098615510127,
+      "support": 420.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      75,
+      7,
+      4
+    ],
+    [
+      8,
+      107,
+      16
+    ],
+    [
+      4,
+      37,
+      162
+    ]
+  ],
+  "caveat": "iNaturalist photos: one insect, large and centred. Does not measure performance on field photos, and cannot separate Helopeltis from other Miridae."
+}

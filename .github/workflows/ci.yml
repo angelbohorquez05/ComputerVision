@@ -1,6 +1,5 @@
 name: CI
 
-# Run the test suite on every push and pull request to main.
 on:
   push:
     branches: [main]
@@ -8,26 +7,40 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  unit-tests:
+    # Fast: no data, no training. The end-to-end test skips itself here.
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Check out the repository code onto the runner.
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      # 2. Install the minimum Python version the project supports (see README).
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
+      - name: Install CPU dependencies
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Unit tests
+        run: pytest
 
-      # 3. Install pytest only. The tested modules (who_where_when.py, fusion.py)
-      #    depend on the standard library alone, so the heavy ML stack in
-      #    requirements.txt is not needed to run the tests. See decision-log.
-      - name: Install test dependencies
-        run: pip install pytest
-
-      # 4. Run the test suite from the repository root.
-      - name: Run tests
+  end-to-end:
+    # From a clean clone: download the exact data and models, reproduce the
+    # published detector metrics, and run the full test suite against them.
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU dependencies
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Download datasets and models
+        run: python -m src.data download
+      - name: Reproduce the detector evaluation
+        run: |
+          python -m src.evaluate detector
+          python -c "import json; m = json.load(open('models/detector_eval.json')); assert m['ap50_95'] >= 0.85 and m['specificity'] == 1.0, m"
+      - name: All tests, including end-to-end
         run: pytest

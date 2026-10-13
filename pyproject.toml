@@ -3,9 +3,9 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tinat"
-version = "0.1.0"
-description = "TINAT — Helopeltis detection and flush-stage classification"
+name = "teaguard"
+version = "1.0.0"
+description = "Helopeltis damage detection and growth-stage risk on tea leaves (YOLOv8 + ONNX)"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]

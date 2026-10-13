@@ -1,134 +1,168 @@
-# Rilevamento di Helopeltis (Miridae) con YOLOv8
+# Tea-Guard
 
-[![CI](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/TINAT/actions/workflows/ci.yml)
+### Detecting *Helopeltis* feeding damage on tea leaves with YOLOv8, and turning it into a risk reading
 
-Sistema di *object detection* per individuare e localizzare insetti dannosi del genere **Helopeltis** (famiglia **Miridae**) su colture di tè, con una metrica ecologica che arricchisce ogni rilevamento.
+[![CI](https://github.com/angelbohorquez05/Tea-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/Tea-Guard/actions/workflows/ci.yml)
 
-> Il progetto nasce in un contesto di **tirocinio** ed è qui pubblicato in versione **anonimizzata** (nessun riferimento a nome reale, azienda, persone o luoghi), usando esclusivamente **dati pubblici**. L'obiettivo del repo è mostrare il processo di sviluppo (organizzazione, decisioni, ciclo di vita ML), non un modello di produzione.
+An *object detection* system that locates, on tea leaves, the **feeding damage left by *Helopeltis*** (family **Miridae**), i.e. the pest's **traces**, not the insect itself, and enriches every detection with the leaf's growth stage and its position.
 
-## Cosa fa
+> **About this project.** A personal re-implementation, on public data only, of a problem I first worked on during an internship. All code here is my own and every dataset is public (CC BY 4.0 / open iNaturalist licences). It is meant to show the development process (data, evaluation, decisions, ML lifecycle), not a production model.
 
-Il compito richiesto è **riconoscere l'insetto dannoso su una coltura specifica (il tè)**. TINAT lo fa in due parti che funzionano end-to-end:
+## What it does
 
-1. **Rileva l'insetto** — da una foglia, localizza l'*Helopeltis* con un *bounding box* ([`src/fusion.py`](src/fusion.py), detector YOLOv8-n via ONNX).
-2. **Classifica lo stadio della foglia** — distingue **foglia giovane** (germoglio tenero, alto rischio) da **foglia matura** ([`src/train_flush_stage.py`](src/train_flush_stage.py), classificatore a 2 stadi).
+*Helopeltis* is ~6–8 mm and mobile, so it is almost never captured in a photo: what stays visible and persistent is the **damage it leaves on the leaf**. Tea-Guard detects that damage, in two parts that run end-to-end ([`src/pipeline.py`](src/pipeline.py)):
 
-Su questi due dati ogni rilevamento viene organizzato in una metrica **WHO×WHERE×WHEN** ([`src/who_where_when.py`](src/who_where_when.py)):
+1. **Detects the pest's damage**: localises *Helopeltis* **feeding marks** on a leaf with a *bounding box* (YOLOv8-n, run with ONNX Runtime).
+2. **Classifies the leaf stage**: **young leaf** (tender shoot, high risk) vs **mature leaf**.
 
-| Dimensione | Domanda | Stato |
-|-----------|---------|-------|
-| **WHO** | Quale insetto? | Detector *Helopeltis* — funziona sui dati disponibili |
-| **WHEN** | In quale stadio la foglia? | 2 stadi: giovane / matura — funziona sui dati disponibili |
-| **WHERE** | Periferia o nucleo del campo? | Logica pronta e testata ([`src/spatial.py`](src/spatial.py)); si attiva con foto dal campo (vedi limiti) |
+From these two signals, each detection becomes an `Observation` organised as **WHO×WHERE×WHEN**:
 
-Il **WHERE** misura se il parassita è solo al **bordo** del campo (l'ecosistema regge) o è arrivato al **centro** (problema reale) — l'uso indicato dal supervisore del tirocinio. Richiede le posizioni delle rilevazioni sul campo, che le foto pubbliche da internet non hanno: perciò è dimostrato dai test, non ancora sui dati attuali.
+| Dimension | Question | Status |
+|-----------|----------|--------|
+| **WHO** | Is the pest present? (read from its damage) | Damage detector, works on the available data |
+| **WHEN** | Which leaf stage? | 2 stages: young / mature, trained but weak (see below) |
+| **WHERE** | Edge or centre of the monitored area? | Logic built and tested; on today's photos the verdict is an artefact (see below) |
 
-## Requisiti e installazione
+**WHERE** aggregates many detections into an edge-vs-core verdict: is the damage only at the border of the area, or has it reached the middle? It needs a real position for each photo, which internet photos don't carry. Run on the current data it returns `breach=True` with **every single detection in the core**, and that is not a finding, it is an artefact of photography: people centre their subject, so every box centre lands near the middle of the frame. Today the verdict means "edge vs centre of the *frame*". The logic does not change when real coordinates exist, only the coordinate space. Shown, with the plot, in [`notebooks/04_the_verdict.ipynb`](notebooks/04_the_verdict.ipynb).
 
-Requisiti: **Python 3.10+** e `git`. Tutto gira **su CPU** (nessuna GPU richiesta).
+### A third model, on the insect itself
+
+The detector never names anything: it has one class and stamps a fixed label on every box. A **separate classifier** answers *is this Helopeltis?* (vs another mirid, vs another insect), and a second variant sorts ten insect groups into ecological roles.
+
+It is a **second entry point, not a pipeline stage**: the detector boxes *lesions on a leaf*, and a lesion crop contains no insect to classify. One model looks at a leaf, the other at an animal. Metrics, and the geographic confound it exposed, in the [insect model card](docs/model-card-insect-id.md).
+
+## Quick start
+
+Requirements: **Python 3.10+** and `git`. Everything runs **on CPU**.
 
 ```bash
-git clone https://github.com/angelbohorquez05/TINAT.git
-cd TINAT
+git clone https://github.com/angelbohorquez05/Tea-Guard.git
+cd Tea-Guard
 
 python -m venv venv
-# Windows (PowerShell)
-venv\Scripts\Activate.ps1
-# macOS / Linux
-source venv/bin/activate
+venv\Scripts\Activate.ps1        # Windows (PowerShell)
+# source venv/bin/activate       # macOS / Linux
 
+# optional, much smaller download: CPU-only PyTorch
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
 
-Per lanciare i test:
+No images are stored in git. One command downloads the exact datasets and trained models the results below were measured on (checksummed, ~60 MB), then rebuilds the capture-session split:
 
 ```bash
-pytest
+python -m src.data download
 ```
 
-## Dataset
+Then:
 
-- **Origine:** dataset pubblico su **Roboflow Universe** (licenza **CC BY 4.0**), con immagini di *Helopeltis* raccolte da fonti pubbliche (GBIF, iNaturalist, letteratura sui parassiti del tè).
-- **Composizione:** ~483 immagini annotate con *bounding box* (split 80/10/10 train/val/test), classe singola `Helopeltis spp.`.
-- **Perché:** è pubblico, annotato in formato detection e coerente con il target, quindi permette di lavorare fin da subito senza dati proprietari.
-- **Qualità/limiti dei dati:** immagini da internet (illuminazione, sfondi e angolazioni vari), soprattutto insetti adulti su foglie. Le immagini reali dal campo non sono ancora disponibili (previste tra qualche mese): c'è quindi un *domain gap* da validare.
-- **Versionamento:** essendo un dataset pubblico (CC BY 4.0) e leggero (~5 MB), è versionato nel repository sotto `data/`, così i risultati sono riproducibili e ispezionabili. Restano fuori da git solo i binari pesanti dei modelli (pesi `*.pt`, export `*.onnx`/`*.tflite`), rigenerabili dal training (vedi `.gitignore`).
-
-## Struttura
-
-```
-TINAT/
-├── src/                  codice del progetto
-│   ├── fusion.py          detector YOLOv8-n (ONNX) + fusione → Observation
-│   ├── who_where_when.py  metrica ecologica WHO×WHERE×WHEN
-│   ├── spatial.py         WHERE: periferia vs nucleo del campo
-│   └── demo.py            demo end-to-end
-├── tests/                test con pytest
-├── notebooks/            fine-tuning del detector (01) e classificatore di stadio (02)
-├── data/                 dataset pubblico versionato (~5 MB)
-├── models/               artefatti dei risultati del training (metriche, plot); pesi esclusi
-├── docs/                 documentazione, model card e log delle decisioni
-├── requirements.txt
-└── pytest.ini
+```bash
+python -m src.evaluate detector   # reproduces the detector numbers below
+pytest                            # 51 tests, including an end-to-end photo -> Observation run
 ```
 
-## Il modello
+The notebooks in [`notebooks/`](notebooks/) are saved with their figures, so they read without being run.
 
-- **Architettura:** YOLOv8-n (Ultralytics), pre-addestrato su COCO e poi fine-tuned sul dataset pubblico di Helopeltis.
-- **Input/Output:** immagine RGB → *bounding box* + confidenza.
-- **Export:** ONNX e TFLite (deploy offline su mobile).
-- **Risultati (test set, 49 immagini da internet):** mAP@0.5 ≈ 0.995, precision ≈ 0.99, recall = 1.0. *Da leggere con cautela:* test set piccolo e stesso dominio "internet" del training; il vero banco di prova saranno le foto reali dal campo.
-- **Verifica del percorso integrato:** [`src/evaluate_detector.py`](src/evaluate_detector.py) rimisura il detector *così come gira nella pipeline* (ONNX Runtime + NMS, non i log di training) sul test set: precision/recall/AP@0.5 = 1.0 con una predizione per immagine (49 box per 49 ground truth), risultato salvato in [`models/detector_eval.json`](models/detector_eval.json). Conferma che l'integrazione riproduce le metriche di training — e lo stesso caveat vale: 1.0 su 49 immagini dello stesso dominio va letto con cautela.
+### Rebuilding or retraining
 
-Dettagli completi (metriche, training, limiti, considerazioni etiche) nella [model card](docs/model-card.md).
+| Goal | Command |
+|---|---|
+| Retrain the detector (~3–4 h on a laptop CPU) | `python -m src.train detector --epochs 60` |
+| Leaf-stage images (Mendeley, ~4 GB) | `python -m src.data flush "<Raw Data folder>"` |
+| Retrain the leaf-stage classifier | `python -m src.train flush` |
+| Insect images (iNaturalist, exact set) | `python -m src.data rebuild` |
+| Retrain the insect classifier | `python -m src.train insects --task helopeltis` |
+| Geographic control for the insect classifier | `python -m src.evaluate geo` |
 
-## Ciclo di vita del modello
+## Data
 
-- **Dati:** download del dataset pubblico (Roboflow) e organizzazione in `data/`.
-- **Training:** fine-tuning di YOLOv8-n su CPU (mantiene la classe target Helopeltis).
-- **Validazione:** metriche di detection (mAP@0.5, mAP@0.5:0.95, precision, recall per classe).
-- **Export/Deploy:** conversione in ONNX/TFLite per l'inferenza su CPU/mobile.
-- **Monitoring:** vedi MLOps.
+- **Detector positives:** public dataset from **Roboflow Universe** (**CC BY 4.0**), *Helopeltis* images collected from public sources. ~483 images with *bounding boxes*, single class. **Important:** the boxes enclose **tea leaves with feeding damage** (lesions), not the insect, so the model learns to recognise the *damage*, not the pest itself.
+- **Detector backgrounds:** 251 iNaturalist photos (other insects, healthy foliage) with empty labels, 74 of them held out for testing. Provenance per image in [`manifest.csv`](data/raw/helopeltis_negatives/manifest.csv).
+- **Leaf stage:** TeaLeafAgeQuality (Mendeley Data, CC BY 4.0), 2208 images by leaf age.
+- **Insects:** iNaturalist, open licences, rebuildable exactly from a manifest.
 
-## MLOps
+Each set has its own README under [`data/raw/`](data/raw/) covering provenance, licences and how to rebuild it. The detector sets and the two deployed models are published as checksummed [release assets](https://github.com/angelbohorquez05/Tea-Guard/releases), so cloning stays light and every download is the same set of bytes.
 
-- **Cosa monitorare:** distribuzione delle immagini in ingresso (*domain/seasonal drift*), tasso di falsi negativi segnalati, andamento di mAP nel tempo.
-- **Criteri di re-training:** calo di mAP sotto soglia; nuovi falsi negativi/positivi; arrivo delle foto reali dal campo; cambio delle condizioni di ripresa.
-- **Coda "Needs Review":** le rilevazioni a bassa confidenza (< 0.65) vengono instradate per revisione e futuro ri-addestramento.
+## Structure
 
-## Scope e prossimi passi
+```
+Tea-Guard/
+├── src/
+│   ├── data.py            every dataset: download, rebuild, capture-session split
+│   ├── train.py           the three models: detector, flush stage, insect ID
+│   ├── evaluate.py        the honest evaluations (mixed test set, geographic control)
+│   └── pipeline.py        runtime: models -> Observation -> field verdict
+├── tests/                 pytest (unit tests + end-to-end with the real models)
+├── notebooks/             the visual story, in order: 01 damage · 02 insect · 03 moment · 04 verdict
+├── data/raw/              READMEs, manifests and the session split (images are downloaded)
+├── models/                metrics and training histories (weights are downloaded)
+├── docs/                  model cards
+├── .github/workflows/     CI: unit tests, then download + reproduce + end-to-end
+└── requirements.txt
+```
 
-Lo scope è **volutamente chiuso** a ciò che funziona sui dati pubblici disponibili (vedi decision-log, 2026-07-17 e 2026-07-21): rilevamento dell'insetto + stadio della foglia a 2 classi. Ciò che si attiverà quando arriveranno le **foto reali dal campo**:
+## The models
 
-- **WHERE spaziale su dati reali:** `spatial.py` classifica periferia/nucleo a partire dalle posizioni delle rilevazioni sul campo (coordinate), oggi non presenti nelle foto da internet.
-- **Validazione e fine-tuning di dominio** del detector sulle foto reali (il domain gap dichiarato sotto).
+All three are measured on splits that keep **capture sessions whole**; see below for why that sentence is the most important one on this page.
 
-**Fuori scope** (esclusioni consapevoli, non lavoro in sospeso): una terza classe `dormant` per il classificatore (fase a bassissima attività di parassiti e senza dataset pubblico), oltre a tracking dei singoli insetti tra i frame, misure chimiche del suolo (N-P-K, pH) e GPS in tempo reale.
+| Model | Architecture | Result | Card |
+|---|---|---|---|
+| Damage detector | YOLOv8-n (COCO) → ONNX | AP@0.5 1.0, **AP@0.5:0.95 0.886**, specificity 1.0 | [card](docs/model-card.md) |
+| Leaf stage (WHEN) | MobileNetV2 → ONNX | accuracy 0.731, `new_flush` P 0.43 / R 0.64 | [card](docs/model-card-flush-stage.md) |
+| Insect classifier | MobileNetV2 | 0.86 / 0.87 precision-recall on Helopeltis | [card](docs/model-card-insect-id.md) |
 
-## Rischi, assunzioni e limiti
+### The split, and what it cost
 
-**Assunzioni**
+My first numbers were measured on a test set that was a near-duplicate of the training set. Both public datasets are **burst photography** (someone walking a plantation, shooting continuously), and a random split scatters photos of the same leaf, taken seconds apart, across train and test. Measured: **45 of the 49 detector test images sat immediately beside a training image** in capture order, the closest 5 seconds away; in the leaf-stage set, **100%** of the timestamped photos have another within 60 seconds.
 
-- Le immagini pubbliche da internet sono un *proxy* accettabile per iniziare, in attesa delle foto reali dal campo (previste tra qualche mese).
-- Il classificatore di stadio (WHEN) copre 2 classi (`new_flush` / `mature_leaf`), lo scope definitivo del pilot; lo stadio `dormant` è fuori scope (vedi sopra). Se il modello non è presente, la demo usa un fallback esplicito (`new_flush`).
-- Il deploy di destinazione è offline su CPU/mobile (da cui l'export ONNX/TFLite).
+The fix ([`src/data.py`](src/data.py), `split`) reconstructs the capture sessions from the filenames and sends each one whole to a single split. Both models were re-trained. They answered differently, and that is the result:
 
-**Rischi**
+| | Contaminated split | Capture-session split |
+|---|---|---|
+| Detector AP@0.5 | 1.000 | **1.000** |
+| Leaf stage, `new_flush` recall | 0.791 | **0.642** |
+| Leaf stage, `mature_leaf` recall | 0.948 | **0.756** |
 
-- **Domain gap:** il modello è addestrato su foto da internet, non da campo reale: le metriche alte non garantiscono le stesse prestazioni sul campo.
-- **Classe singola:** rileva Helopeltis, ma non lo distingue ancora da altri Miridae simili.
-- **Frame singolo:** l'inferenza è per-immagine; la stabilità su frame sfocati/parziali dipende dall'aggregazione temporale (roadmap).
+**The detector held; the leaf-stage classifier did not.** The detector learned the texture of the damage. The classifier was memorising: 2208 images, but only **20 capture sessions**, five of which hold 84% of them.
 
-**Stato onesto del progetto**
+### Reading the detector's numbers
 
-- **Funziona end-to-end:** la logica di fusione e la metrica WHO×WHERE×WHEN (`Observation` → verdetto spaziale → export JSON). Verificata da `pytest` (35 test) e dalla CI a ogni commit; eseguibile con `python -m src.demo`.
-- **Inferenza reale del detector (WHO) integrata:** `HelopeltisDetector` esegue il modello YOLOv8-n via ONNX Runtime su CPU (coordinate normalizzate + *non-max suppression*). La `demo_real` di [`src/demo.py`](src/demo.py) gira sulle immagini reali del test set (`data/raw/helopeltis/test/`): detector reale → classificatore di stadio reale → `Observation`. Se il file ONNX (binario pesante, fuori da git) o `onnxruntime` mancano, la demo salta questo passo senza errori.
-- **Classificatore di stadio (WHEN) addestrato e integrato:** MobileNetV2 a 2 classi (`new_flush` / `mature_leaf`), accuratezza ~88% sul test set, con recall di `new_flush` (classe ad alto rischio) portato a **0.86** grazie a una soglia di decisione dedicata. Caricato da `FlushClassifier` quando `models/flush_stage.tflite` è presente; codice riproducibile in [`src/train_flush_stage.py`](src/train_flush_stage.py). Le 2 classi sono lo scope definitivo (la classe `dormant` è fuori scope, vedi sopra).
-- **WHERE spaziale, integrato:** ogni `Observation` porta la **posizione** della rilevazione (centro del box) e `spatial.assess_infestation` ([`src/spatial.py`](src/spatial.py), 14 test) ne calcola il verdetto **periferia vs nucleo** — la demo lo esegue davvero, non è codice orfano. Il vecchio segmentatore di zone della pianta è stato **rimosso** dal codice (mai costruito, vedi decision-log). Limite: su una foto la posizione è nel frame; il vero periferia/nucleo del campo richiede le coordinate GPS delle foto reali.
+Precision 1.0 is a real measurement: the test set is **mixed**, 49 positives plus 74 held-out backgrounds, so a false positive is possible. The first detector, trained without backgrounds, fired on **100%** of those images; the current model fires on none, scoring 0.0 even at a 0.01 confidence threshold.
 
-## Ulteriori informazioni
+But **AP@0.5 is not a metric whose floor is zero.** The boxes cover ~40% of the image and subjects are centred, so a constant centred box with no model at all scores **0.514**. That floor is printed under every evaluation run. **AP@0.5:0.95 = 0.886** is the number that judges localisation, and the one to quote.
 
-- **Decisioni di progetto:** tracciate in [`docs/decision-log.md`](docs/decision-log.md) (contesto, alternative, motivazione di ogni scelta).
-- **Model card:** metriche, training, limiti e considerazioni etiche del detector in [`docs/model-card.md`](docs/model-card.md) e del classificatore di stadio in [`docs/model-card-flush-stage.md`](docs/model-card-flush-stage.md).
-- **Notebook:** fine-tuning del detector e classificatore di stadio in [`notebooks/`](notebooks/).
-- **CI:** stato dei test a ogni commit nella tab *Actions* del repository (badge in cima a questo README).
+What none of this measures: every image is from the internet. Specificity 1.0 says a bug is fixed, not that the model works in a plantation.
+
+## Model lifecycle
+
+- **Data:** `python -m src.data download` (or rebuild from source), then the capture-session split, which training and evaluation refuse to run without.
+- **Training:** fine-tune YOLOv8-n on CPU, positives + background negatives.
+- **Validation:** detection metrics (AP@0.5, AP@0.5:0.95, precision, recall) + specificity on held-out backgrounds, with the constant-box floor alongside.
+- **Export:** ONNX for both deployed models; inference needs only ONNX Runtime, NumPy and Pillow. Machine paths are scrubbed from the model metadata, and a test fails if one comes back.
+- **Monitoring (if deployed):** input drift (domain, season), reported false negatives, AP over time; low-confidence detections (< 0.65) go to a review queue instead of being reported.
+
+## Limits
+
+**Assumptions**
+
+- Public internet images are an acceptable *proxy* to develop and evaluate the method; photos taken on the bush would be the real test.
+- The stage classifier covers 2 classes (`new_flush` / `mature_leaf`); a `dormant` stage is out of scope (lowest pest activity, no public dataset). If its model file is absent, `FlushClassifier.predict` returns `None` instead of failing.
+
+**Risks**
+
+- **Domain gap:** everything is trained on internet photos. The high metrics do not carry over to a plantation, and out of domain the detector draws frame-sized boxes, which also makes the position WHERE depends on unreliable.
+- **Geographic confound:** the insect classifier partly reads the *region* rather than the animal: 11.1% of same-region mirids called Helopeltis, against 6.1% on the ordinary test split. Halved by re-training, not removed.
+- **The leaf stage (WHEN) is weak:** `new_flush` precision 0.43; when it calls a shoot tender it is wrong more often than right. Usable as one input among several, not as a treatment trigger. The ceiling is data diversity (20 capture sessions), not training.
+- **Single class, single frame:** the detector cannot separate Helopeltis damage from another pest's damage, and inference is per image (`FusionEngine.push_frame` adds temporal aggregation for video).
+
+## Next steps
+
+1. Validate and fine-tune the detector on photos taken in the field.
+2. Attach a real position to each photo so the edge-vs-core verdict means something.
+3. Widen the leaf-stage dataset (more plantations, devices, seasons): its limit is diversity, not training.
+
+## Further information
+
+- **Model cards:** [detector](docs/model-card.md) · [leaf stage](docs/model-card-flush-stage.md) · [insect classifier](docs/model-card-insect-id.md).
+- **Notebooks:** [`notebooks/`](notebooks/): 01 the damage · 02 the insect · 03 the moment · 04 the verdict.
+- **Licences:** datasets as listed above; YOLOv8 by Ultralytics (AGPL-3.0); MobileNetV2 from torchvision.

@@ -3,18 +3,20 @@
     "new_flush",
     "mature_leaf"
   ],
-  "n_train": 1545,
-  "n_val": 331,
-  "n_test": 332,
-  "report": "              precision    recall  f1-score   support\n\n   new_flush      0.946     0.791     0.862       177\n mature_leaf      0.799     0.948     0.867       155\n\n    accuracy                          0.864       332\n   macro avg      0.872     0.870     0.864       332\nweighted avg      0.877     0.864     0.864       332\n",
+  "split": "capture session (70/15/15), sessions kept whole",
+  "n_sessions": 20,
+  "n_train": 1267,
+  "n_val": 451,
+  "n_test": 490,
+  "report": "              precision    recall  f1-score   support\n\n   new_flush      0.429     0.642     0.515       109\n mature_leaf      0.881     0.756     0.814       381\n\n    accuracy                          0.731       490\n   macro avg      0.655     0.699     0.664       490\nweighted avg      0.780     0.731     0.747       490\n",
   "confusion_matrix": [
     [
-      140,
-      37
+      70,
+      39
     ],
     [
-      8,
-      147
+      93,
+      288
     ]
   ]
 }

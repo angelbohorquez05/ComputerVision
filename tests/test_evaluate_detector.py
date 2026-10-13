@@ -1,9 +1,9 @@
-from src.evaluate_detector import (
+from src.evaluate import (
     _average_precision,
     _load_ground_truth,
     _match_predictions,
 )
-from src.fusion import BBox
+from src.pipeline import BBox
 
 
 def test_match_predictions_perfect_hit():

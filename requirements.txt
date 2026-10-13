@@ -1,21 +1,19 @@
-# TINAT — Helopeltis detection (YOLOv8). Runs on CPU. Pin major versions; update after each training run.
+# TeaGuard. Runs on CPU; no GPU or TensorFlow needed.
+# Smaller install: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-ultralytics>=8.0.0        # YOLOv8 fine-tuning and inference
-torch>=2.0.0              # CPU build
-torchvision>=0.15.0
-onnxruntime>=1.13.0       # ONNX inference (fusion layer)
-onnx==1.17.0              # PyTorch->ONNX export; pinned — newer onnx needs an ml_dtypes that clashes with TensorFlow
-tensorflow>=2.13.0        # TFLite runtime (loads flush_stage.tflite)
-# Note: the ONNX->TFLite conversion uses `onnx2tf`, installed separately (its
-# ml_dtypes/protobuf pins conflict with TensorFlow, so it is NOT listed here).
-Pillow>=10.0.0
+# Inference (the pipeline and the notebooks)
+onnxruntime>=1.17.0       # runs both deployed models
 numpy>=1.24.0
-pandas>=2.0.0
-scikit-learn>=1.3.0       # train/val/test splits and metrics
-matplotlib>=3.7.0         # training curve plots
-tqdm>=4.65.0
-roboflow>=1.1.0           # dataset download from Roboflow Universe
-requests>=2.31.0          # image download helpers
+Pillow>=10.0.0
+matplotlib>=3.7.0         # notebooks
 
-# Testing
+# Training and evaluation
+ultralytics>=8.3.0        # YOLOv8 fine-tuning and ONNX export
+torch>=2.2.0
+torchvision>=0.17.0
+onnx>=1.16.0              # export, and scrubbing machine paths from model metadata
+onnxslim>=0.1.30          # used by the Ultralytics ONNX export
+scikit-learn>=1.3.0       # splits and metrics
+
+# Tests
 pytest>=8.0.0

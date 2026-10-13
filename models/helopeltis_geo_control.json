@@ -1,0 +1,23 @@
+{
+  "n_control_images": 208,
+  "places": [
+    "Singapore",
+    "Hong Kong",
+    "India",
+    "Taiwan",
+    "Malaysia",
+    "Indonesia",
+    "Sri Lanka",
+    "Thailand",
+    "Vietnam",
+    "Philippines"
+  ],
+  "predicted": {
+    "helopeltis": 23,
+    "other_miridae": 163,
+    "other_insects": 22
+  },
+  "false_positive_rate_same_region": 0.1106,
+  "false_positive_rate_test_split": 0.0611,
+  "note": "Mirids (Helopeltis excluded) photographed in the same regions as the Helopeltis training images. Measures whether the classifier keys on the insect or on regional background."
+}

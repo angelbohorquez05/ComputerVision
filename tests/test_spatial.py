@@ -1,6 +1,6 @@
 import pytest
 
-from src.spatial import (
+from src.pipeline import (
     CORE,
     PERIPHERY,
     FieldExtent,

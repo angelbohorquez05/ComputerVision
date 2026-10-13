@@ -1,13 +1,38 @@
 {
-  "path": "integrated ONNX (HelopeltisDetector + NMS)",
-  "n_images": 49,
+  "path": "integrated ONNX (HelopeltisDamageDetector + NMS)",
+  "split": "capture session \u2014 no test photo within 120s or 10 sequence positions of a training photo",
+  "test_set": "mixed (positives + held-out backgrounds)",
+  "n_images": 123,
+  "n_positive_images": 49,
+  "n_background_images": 74,
   "n_ground_truth": 49,
   "n_predictions": 49,
   "conf_threshold": 0.25,
   "iou_match": 0.5,
   "true_positives": 49,
   "false_positives": 0,
+  "background_false_positives": 0,
+  "background_images_with_detection": 0,
+  "specificity": 1.0,
   "precision": 1.0,
   "recall": 1.0,
-  "ap50": 1.0
+  "ap50": 1.0,
+  "ap50_95": 0.8857,
+  "ap_by_iou": {
+    "0.50": 1.0,
+    "0.55": 1.0,
+    "0.60": 1.0,
+    "0.65": 1.0,
+    "0.70": 1.0,
+    "0.75": 0.9758,
+    "0.80": 0.9758,
+    "0.85": 0.9553,
+    "0.90": 0.8103,
+    "0.95": 0.1394
+  },
+  "trivial_baseline": {
+    "box_side": 0.646,
+    "ap50": 0.5145,
+    "note": "constant centred box, no model; fires on every background (specificity 0). The floor AP@0.5 has to clear to mean anything."
+  }
 }

@@ -1,93 +1,136 @@
-# Model Card — Classificatore di stadio di flush (Workstream B, dimensione WHEN)
+# Model Card — Flush-Stage Classifier (WHEN dimension)
 
-**Versione:** 0.1 (2 classi)
-**Data:** luglio 2026
-**Autore:** Angel Bohorquez
-**Parte del progetto:** TINAT
+## Model overview
 
-## Panoramica del modello
+Image classifier that estimates the **flush stage** of a tea leaf, to populate
+the **WHEN** dimension of the WHO×WHERE×WHEN metric. It feeds
+`FlushClassifier` in [`src/pipeline.py`](../src/pipeline.py); if the model file is
+absent, `predict` returns `None` rather than failing.
 
-Classificatore di immagini che stima lo **stadio di flush** di una foglia di tè,
-per popolare la dimensione **WHEN** della metrica WHO×WHERE×WHEN. Alimenta
-`FlushClassifier` in [`src/fusion.py`](../src/fusion.py); se assente, la demo usa
-un fallback esplicito.
+- **Architecture:** MobileNetV2 (transfer learning from ImageNet) with a 2-class linear head.
+- **Input:** RGB image 224×224, ImageNet normalisation (mean `[0.485, 0.456, 0.406]`, std `[0.229, 0.224, 0.225]`).
+- **Classes (logit order):** `new_flush` (tender shoot, **high risk** for Helopeltis), `mature_leaf` (mature leaf, low risk).
+- **`dormant` stage:** **out of scope** — it is the lowest-pest-activity stage and no public dataset exists.
 
-- **Architettura:** MobileNetV2 (transfer learning da ImageNet) con testa lineare a 2 classi.
-- **Input:** immagine RGB 224×224, normalizzazione ImageNet (mean `[0.485, 0.456, 0.406]`, std `[0.229, 0.224, 0.225]`).
-- **Classi (ordine dei logit):** `new_flush` (germoglio tenero, **alto rischio** Helopeltis), `mature_leaf` (foglia matura, basso rischio).
-- **Stadio `dormant`:** **fuori scope** — è la fase con meno attività di parassiti e non esiste un dataset pubblico (vedi decision-log). Le 2 classi sono lo scope definitivo del pilot.
+## Performance metrics
 
-## Metriche di performance
+> **These numbers replaced much better ones on 2026-07-24, and the drop is the
+> result.** The previous split was random by image, on a dataset where 100% of
+> the timestamped photos have another photo within 60 seconds — bursts of the
+> same leaf, scattered across train and test. The old test accuracy of 0.883
+> was largely recall of images the model had all but seen.
 
-### Risultati sul test set (332 immagini, held-out, seed fisso)
+### Results on the test set (490 images: 109 `new_flush` + 381 `mature_leaf`)
 
-Punto operativo **deployato**: `FlushClassifier` usa una **soglia di decisione di 0.35**
-su `new_flush` (invece di argmax = 0.5), scelta sul *validation set* per alzare il
-recall della classe ad alto rischio (vedi decision-log).
+Split by **capture session**, sessions kept whole, stratified by class.
 
-| Classe | Precision | Recall | F1 | Support |
+| Class | Precision | Recall | F1 | Support |
 |---|---|---|---|---|
-| `new_flush` | 0.916 | **0.859** | 0.886 | 177 |
-| `mature_leaf` | 0.849 | 0.910 | 0.879 | 155 |
-| **Accuracy** | | **0.883** | | 332 |
+| `new_flush` | **0.429** | 0.642 | 0.515 | 109 |
+| `mature_leaf` | 0.881 | 0.756 | 0.814 | 381 |
+| **Accuracy** | | **0.731** | | 490 |
 
-Matrice di confusione (righe = vero `[new_flush, mature_leaf]`): `[[152, 25], [14, 141]]`.
+Confusion matrix (rows = true `[new_flush, mature_leaf]`): `[[70, 39], [93, 288]]`.
 
-Per riferimento, con **argmax puro** (soglia 0.5) il recall di `new_flush` era 0.791
-(accuratezza 0.864): la soglia recupera ~7 punti di recall sulla classe che conta,
-a fronte di poca precision persa.
+**What changed, measured honestly.** Recall is the fair comparison — precision
+moves with class prevalence, and the new test split is 22/78 where the old was
+53/47:
 
-**Interpretazione (con cautela):** il **recall di `new_flush` (0.86)** supera ora
-l'obiettivo di 0.85. Resta comunque il tipo di errore più costoso (25 germogli teneri
-persi come foglia matura); migliorabile ulteriormente con più dati o re-training con
-loss pesata verso `new_flush`.
+| | Contaminated split | Capture-session split |
+|---|---|---|
+| `new_flush` recall | 0.791 | **0.642** |
+| `mature_leaf` recall | 0.948 | **0.756** |
+| accuracy | 0.864 | **0.731** |
 
-## Dataset di training
+**Interpretation.** The model is weak, and now honestly so. `new_flush`
+precision of 0.429 means that when it calls a shoot tender it is **wrong more
+often than right** — unusable as a standalone trigger for a treatment decision.
+Training accuracy ended at 0.968 against validation 0.565: it memorises.
 
-- **Fonte:** TeaLeafAgeQuality (Mendeley Data, licenza CC BY 4.0), 2208 immagini di *Camellia sinensis*.
-- **Mappatura età → stadio:** categorie giovani → `new_flush` (1177), categorie mature → `mature_leaf` (1031). Dettagli in [`data/raw/flush_stages/README.md`](../data/raw/flush_stages/README.md).
-- **Split:** stratificato 70/15/15 deterministico → train 1545, val 331, test 332.
+**The cause is the dataset, not the training.** 2208 images, but only **20
+capture sessions**, the five largest holding 84% of them. The effective sample
+size is about twenty scenes. No number of epochs, no augmentation and no loss
+weighting manufactures diversity that is not there — only more sources will.
 
-### Limiti dei dati
+### Operating point: 0.50 (argmax), re-calibrated 2026-07-24
 
-- Il dataset è per **età/qualità** della foglia, un *proxy* dello stadio di flush.
-- Immagini di dominio pubblico, non foto reali dal campo: possibile *domain gap*.
-- Nessuna classe `dormant` (fuori scope: fase a bassissima attività di parassiti, senza dataset pubblico).
+`FlushClassifier` applied a **0.35 threshold** on `new_flush` until 2026-07-24,
+to buy recall on the high-risk class. That value had been tuned on the
+contaminated split. Re-swept from 0.20 to 0.80 on the **new validation split**,
+the macro-F1 optimum is **0.50** — plain argmax — and the curve is flat and
+monotone around it: no threshold beats argmax.
 
-## Procedura di training (riproducibilità)
+Confirmed on the test set:
 
-- **Fasi:** testa a backbone congelato (5 epoche, Adam lr 1e-3) → fine-tuning completo (2 epoche, lr 1e-4).
-- **Loss:** cross-entropy con pesi di classe bilanciati. Seed 42, CPU.
-- **Comando:**
+| Threshold | Accuracy | macro-F1 | `new_flush` P / R |
+|---|---|---|---|
+| **0.50 (deployed)** | **0.731** | **0.664** | 0.429 / 0.642 |
+| 0.35 (retired) | 0.686 | 0.629 | 0.381 / 0.661 |
+| 0.25 | 0.673 | — | 0.376 / 0.706 |
+
+The old value bought 2 points of `new_flush` recall for 5 of precision. The
+`NEW_FLUSH_THRESHOLD` constant stays in the code — it is a calibration result,
+to be re-swept whenever the classifier is re-trained, not a default nobody
+examined.
+
+## Training dataset
+
+- **Source:** TeaLeafAgeQuality (Mendeley Data, CC BY 4.0 licence), 2208 images of *Camellia sinensis*.
+- **Age → stage mapping:** young categories → `new_flush` (1177), mature categories → `mature_leaf` (1031). Details in [`data/raw/flush_stages/README.md`](../data/raw/flush_stages/README.md).
+- **Split:** **capture session**, 70/15/15, sessions kept whole and stratified by class → train 1267, val 451, test 490. Not a random split by image.
+- **Effective diversity:** 2208 images, but only **20 capture sessions** — the five largest hold 84%.
+
+### Data limits
+
+- The dataset is about leaf **age/quality**, a *proxy* of the flush stage.
+- Public-domain images, not real field photos: possible *domain gap*.
+- No `dormant` class (out of scope: lowest-pest-activity stage, no public dataset).
+
+## Training procedure (reproducibility)
+
+- **Stages:** head with frozen backbone (5 epochs, Adam lr 1e-3) → full fine-tuning (2 epochs, lr 1e-4).
+- **Loss:** cross-entropy with balanced class weights. Seed 42, CPU.
+- **Command:**
   ```bash
-  python -m src.train_flush_stage --epochs-head 5 --epochs-ft 2 --batch 32
+  python -m src.train flush --epochs-head 5 --epochs-ft 2 --batch 32
   ```
 
-## Artefatti del modello
+## Model artifacts
 
-Non versionati (vedi `.gitignore`); si rigenerano con lo script:
+Weights are not versioned (see `.gitignore`). `python -m src.data download`
+installs the ONNX model; training regenerates both files:
 
-- `models/flush_stage.pt` — pesi PyTorch.
-- `models/flush_stage.onnx` — grafo ONNX (1×3×224×224).
-- `models/flush_stage.tflite` — modello TFLite (NHWC 1×224×224×3 → 2 logit), convertito con `onnx2tf`.
-- `models/flush_stage_metrics.json` — riepilogo delle metriche.
+- `models/flush_stage.pt` — PyTorch weights.
+- `models/flush_stage.onnx` — ONNX export (NCHW 1×3×224×224 → 2 logits), loaded by the pipeline.
+- `models/flush_stage_metrics.json` — metrics summary (versioned).
 
-I risultati (report, matrice di confusione, griglia di predizioni) si visualizzano **inline nel notebook** [`notebooks/02_flush_stage_classifier.ipynb`](../notebooks/02_flush_stage_classifier.ipynb), senza salvare immagini.
+The results are shown **inline** in [`notebooks/03_the_moment.ipynb`](../notebooks/03_the_moment.ipynb), and the full report and confusion matrix stay machine-readable in `models/flush_stage_metrics.json`.
 
-## Integrazione
+## Integration
 
-`FlushClassifier` carica `models/flush_stage.tflite` se presente e restituisce lo
-stadio applicando una **soglia di 0.35** su `new_flush` (`NEW_FLUSH_THRESHOLD`); con
-un numero di classi diverso da 2 ricadrebbe su `argmax`. Il preprocessing del wrapper
-(normalizzazione ImageNet, NHWC) combacia con quello di training. Verificato con
-`python -m src.demo`.
+`FlushClassifier` loads `models/flush_stage.onnx` with ONNX Runtime if present
+and applies `NEW_FLUSH_THRESHOLD` (0.50, see Operating point); with a number of
+classes other than 2 it falls back to `argmax`. The wrapper's preprocessing
+(ImageNet normalisation, channels-first) matches training. On load it calls
+`warn_if_stale`, which reports if the ONNX predates the checkpoint it was
+exported from, so the pipeline never silently serves a model the metrics do not
+describe. Verified with `notebooks/03_the_moment.ipynb`.
 
-## Limiti noti e prossimi passi
+## Known limits and next steps
 
-- **Recall `new_flush`**: portato a **0.86** (> obiettivo 0.85) tramite la soglia di decisione; migliorabile ancora con più dati o re-training con loss pesata verso `new_flush`.
-- **Validazione su foto reali dal campo** quando disponibili.
+1. **Not usable as a standalone trigger.** `new_flush` precision 0.429. As one
+   input among several it still carries signal; as the thing that decides
+   whether to treat a plot, it does not.
+2. **Twenty scenes, not two thousand photos.** The ceiling here is data
+   diversity. The next useful step is *more sources* — different plantations,
+   devices, seasons — not more training on this set.
+3. **Re-sweep the threshold** whenever this model is re-trained (see Operating
+   point above) — the constant exists to be re-derived, not inherited.
+4. **Validation on real field photos** when available.
 
-**Fuori scope:** una classe `dormant` (fase a bassissima attività di parassiti, senza dataset pubblico — vedi decision-log). Le 2 classi sono lo scope definitivo.
+**Out of scope:** a `dormant` class (lowest-pest-activity stage, no public dataset).
 
-**Ultimo aggiornamento:** luglio 2026
-**Stato:** 2 classi (scope definitivo), addestrato e integrato end-to-end; miglioramento del recall come prossimo passo.
+**Last updated:** 2026-07-24
+**Status:** re-trained on a capture-session split. The honest numbers are much
+weaker than the ones this card carried until 2026-07-24, and the earlier figures
+should not be quoted from anywhere.

@@ -1,6 +1,6 @@
 import pytest
 
-from src.who_where_when import Observation, get_role
+from src.pipeline import Observation, get_role
 
 
 def test_pest_on_new_flush_triggers_alert():

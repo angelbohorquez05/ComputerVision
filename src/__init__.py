@@ -1,1 +1,1 @@
-"""TINAT source package."""
+"""TeaGuard source package."""

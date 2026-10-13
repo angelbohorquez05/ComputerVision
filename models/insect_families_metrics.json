@@ -1,0 +1,360 @@
+{
+  "target": "insect group",
+  "classes": [
+    "miridae",
+    "cicadellidae",
+    "coreidae",
+    "aphididae",
+    "coccinellidae",
+    "araneae",
+    "apidae",
+    "syrphidae",
+    "formicidae",
+    "papilionoidea"
+  ],
+  "roles": {
+    "miridae": "pest",
+    "cicadellidae": "pest",
+    "coreidae": "pest",
+    "aphididae": "pest",
+    "coccinellidae": "beneficial",
+    "araneae": "beneficial",
+    "apidae": "pollinator",
+    "syrphidae": "pollinator",
+    "formicidae": "neutral",
+    "papilionoidea": "pollinator"
+  },
+  "n_images": 1498,
+  "n_test": 225,
+  "group_accuracy": 0.6267,
+  "role_accuracy": 0.76,
+  "best_epoch": "ft 3",
+  "best_val_loss": 1.0752,
+  "history": [
+    {
+      "phase": "head",
+      "epoch": 1,
+      "train_loss": 2.0831,
+      "train_acc": 0.2767,
+      "val_loss": 1.7256,
+      "val_acc": 0.48,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 2,
+      "train_loss": 1.5952,
+      "train_acc": 0.5105,
+      "val_loss": 1.526,
+      "val_acc": 0.48,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 3,
+      "train_loss": 1.4339,
+      "train_acc": 0.5573,
+      "val_loss": 1.4655,
+      "val_acc": 0.4933,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 4,
+      "train_loss": 1.2707,
+      "train_acc": 0.6088,
+      "val_loss": 1.3931,
+      "val_acc": 0.5289,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 5,
+      "train_loss": 1.2179,
+      "train_acc": 0.6288,
+      "val_loss": 1.3168,
+      "val_acc": 0.5289,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 6,
+      "train_loss": 1.1818,
+      "train_acc": 0.6336,
+      "val_loss": 1.3364,
+      "val_acc": 0.5378,
+      "improved": false
+    },
+    {
+      "phase": "head",
+      "epoch": 7,
+      "train_loss": 1.1199,
+      "train_acc": 0.645,
+      "val_loss": 1.3097,
+      "val_acc": 0.52,
+      "improved": true
+    },
+    {
+      "phase": "head",
+      "epoch": 8,
+      "train_loss": 1.0596,
+      "train_acc": 0.6555,
+      "val_loss": 1.2903,
+      "val_acc": 0.5333,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 1,
+      "train_loss": 1.0226,
+      "train_acc": 0.6584,
+      "val_loss": 1.154,
+      "val_acc": 0.5733,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 2,
+      "train_loss": 0.724,
+      "train_acc": 0.77,
+      "val_loss": 1.1045,
+      "val_acc": 0.6222,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 3,
+      "train_loss": 0.5436,
+      "train_acc": 0.8426,
+      "val_loss": 1.0752,
+      "val_acc": 0.6044,
+      "improved": true
+    },
+    {
+      "phase": "ft",
+      "epoch": 4,
+      "train_loss": 0.4321,
+      "train_acc": 0.8769,
+      "val_loss": 1.1002,
+      "val_acc": 0.6178,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 5,
+      "train_loss": 0.3516,
+      "train_acc": 0.9027,
+      "val_loss": 1.1488,
+      "val_acc": 0.5867,
+      "improved": false
+    },
+    {
+      "phase": "ft",
+      "epoch": 6,
+      "train_loss": 0.2792,
+      "train_acc": 0.9323,
+      "val_loss": 1.1703,
+      "val_acc": 0.5956,
+      "improved": false
+    }
+  ],
+  "augmentation": "RandomResizedCrop(0.6-1.0) + flip + rotation(15) + jitter(0.3)",
+  "per_class": {
+    "miridae": {
+      "precision": 0.5652173913043478,
+      "recall": 0.5909090909090909,
+      "f1-score": 0.5777777777777777,
+      "support": 22.0
+    },
+    "cicadellidae": {
+      "precision": 0.7391304347826086,
+      "recall": 0.7727272727272727,
+      "f1-score": 0.7555555555555555,
+      "support": 22.0
+    },
+    "coreidae": {
+      "precision": 0.5833333333333334,
+      "recall": 0.6086956521739131,
+      "f1-score": 0.5957446808510638,
+      "support": 23.0
+    },
+    "aphididae": {
+      "precision": 0.3448275862068966,
+      "recall": 0.43478260869565216,
+      "f1-score": 0.38461538461538464,
+      "support": 23.0
+    },
+    "coccinellidae": {
+      "precision": 0.7619047619047619,
+      "recall": 0.6956521739130435,
+      "f1-score": 0.7272727272727273,
+      "support": 23.0
+    },
+    "araneae": {
+      "precision": 0.5,
+      "recall": 0.36363636363636365,
+      "f1-score": 0.42105263157894735,
+      "support": 22.0
+    },
+    "apidae": {
+      "precision": 0.5555555555555556,
+      "recall": 0.6521739130434783,
+      "f1-score": 0.6,
+      "support": 23.0
+    },
+    "syrphidae": {
+      "precision": 0.7,
+      "recall": 0.6363636363636364,
+      "f1-score": 0.6666666666666666,
+      "support": 22.0
+    },
+    "formicidae": {
+      "precision": 1.0,
+      "recall": 0.7272727272727273,
+      "f1-score": 0.8421052631578947,
+      "support": 22.0
+    },
+    "papilionoidea": {
+      "precision": 0.6923076923076923,
+      "recall": 0.782608695652174,
+      "f1-score": 0.7346938775510204,
+      "support": 23.0
+    },
+    "accuracy": 0.6266666666666667,
+    "macro avg": {
+      "precision": 0.6442276755395195,
+      "recall": 0.6264822134387352,
+      "f1-score": 0.6305484565027037,
+      "support": 225.0
+    },
+    "weighted avg": {
+      "precision": 0.6429689668800114,
+      "recall": 0.6266666666666667,
+      "f1-score": 0.6300577204483779,
+      "support": 225.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      13,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      17,
+      1,
+      2,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      14,
+      2,
+      0,
+      3,
+      0,
+      0,
+      0,
+      3
+    ],
+    [
+      4,
+      2,
+      2,
+      10,
+      0,
+      1,
+      0,
+      2,
+      0,
+      2
+    ],
+    [
+      0,
+      0,
+      2,
+      3,
+      16,
+      0,
+      0,
+      0,
+      0,
+      2
+    ],
+    [
+      2,
+      0,
+      2,
+      3,
+      1,
+      8,
+      5,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      2,
+      0,
+      1,
+      15,
+      3,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      0,
+      2,
+      1,
+      0,
+      2,
+      14,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      1,
+      1,
+      2,
+      0,
+      16,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      2,
+      0,
+      0,
+      18
+    ]
+  ],
+  "caveat": "iNaturalist photos: one insect, large and centred. Does not measure performance on field photos, and cannot separate Helopeltis from other Miridae."
+}
