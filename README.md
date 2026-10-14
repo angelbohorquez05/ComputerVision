@@ -15,6 +15,9 @@ An *object detection* system that locates, on tea leaves, the **feeding damage l
 1. **Detects the pest's damage**: localises *Helopeltis* **feeding marks** on a leaf with a *bounding box* (YOLOv8-n, run with ONNX Runtime).
 2. **Classifies the leaf stage**: **young leaf** (tender shoot, high risk) vs **mature leaf**.
 
+![Damage detector on held-out test leaves](docs/images/damage_detector.png)
+*A random sample of the held-out test split (whole capture sessions never seen in training): one box per damaged leaf, with its confidence.*
+
 From these two signals, each detection becomes an `Observation` organised as **WHO×WHERE×WHEN**:
 
 | Dimension | Question | Status |
@@ -29,7 +32,12 @@ From these two signals, each detection becomes an `Observation` organised as **W
 
 The detector never names anything: it has one class and stamps a fixed label on every box. A **separate classifier** answers *is this Helopeltis?* (vs another mirid, vs another insect), and a second variant sorts ten insect groups into ecological roles.
 
-It is a **second entry point, not a pipeline stage**: the detector boxes *lesions on a leaf*, and a lesion crop contains no insect to classify. One model looks at a leaf, the other at an animal. Metrics, and the geographic confound it exposed, in the [insect model card](docs/model-card-insect-id.md).
+It is a **second entry point, not a pipeline stage**: the detector boxes *lesions on a leaf*, and a lesion crop contains no insect to classify. One model looks at a leaf, the other at an animal.
+
+![Insect classifier on held-out test images](docs/images/insect_classifier.png)
+*A random sample of the held-out test set, not hand-picked: 11 of 12 correct. The one miss is an aphid colony called "other mirid", never Helopeltis.*
+
+Metrics, and the geographic confound it exposed, in the [insect model card](docs/model-card-insect-id.md).
 
 ## Quick start
 
@@ -128,6 +136,9 @@ The fix ([`src/data.py`](src/data.py), `split`) reconstructs the capture session
 ### Reading the detector's numbers
 
 Precision 1.0 is a real measurement: the test set is **mixed**, 49 positives plus 74 held-out backgrounds, so a false positive is possible. The first detector, trained without backgrounds, fired on **100%** of those images; the current model fires on none, scoring 0.0 even at a 0.01 confidence threshold.
+
+![Background images with no detections](docs/images/background_no_detections.png)
+*Held-out backgrounds (healthy tea, flowers, foliage): the detector draws no box on any of the 74.*
 
 But **AP@0.5 is not a metric whose floor is zero.** The boxes cover ~40% of the image and subjects are centred, so a constant centred box with no model at all scores **0.514**. That floor is printed under every evaluation run. **AP@0.5:0.95 = 0.886** is the number that judges localisation, and the one to quote.
 
