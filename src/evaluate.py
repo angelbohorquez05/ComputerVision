@@ -28,13 +28,11 @@ import urllib.request
 from pathlib import Path
 
 import numpy as np
-import torch
 from PIL import Image
 
 from src.data import (fetch, resolve_place, HELOPELTIS_REGIONS,
-                      HELOPELTIS_TAXON, MIRIDAE_TAXON, FAM, UA)
+                      HELOPELTIS_TAXON, MIRIDAE_TAXON, FAM, UA, MODELS_DIR)
 from src.pipeline import BBox, HelopeltisDamageDetector
-from src.train import MODELS_DIR, TASK_CLASSES, build_model, eval_tf
 
 
 # ============================================================================
@@ -364,6 +362,12 @@ def drop_seen_images():
 
 
 def evaluate_geo_cli():
+    # PyTorch is only needed here. Importing it inside the function keeps the
+    # detector evaluation (and its tests) runnable with the light inference
+    # install: ONNX Runtime, NumPy, Pillow.
+    import torch
+    from src.train import TASK_CLASSES, build_model, eval_tf
+
     download_control()
     drop_seen_images()
     images = sorted(CONTROL_DIR.glob("*.jpg"))
