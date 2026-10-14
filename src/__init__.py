@@ -1,1 +1,1 @@
-"""TeaGuard source package."""
+"""LeafTrace source package."""

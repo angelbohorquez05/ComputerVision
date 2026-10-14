@@ -1,8 +1,8 @@
-# Tea-Guard
+# LeafTrace
 
 ### Detecting *Helopeltis* feeding damage on tea leaves with YOLOv8, and turning it into a risk reading
 
-[![CI](https://github.com/angelbohorquez05/Tea-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/Tea-Guard/actions/workflows/ci.yml)
+[![CI](https://github.com/angelbohorquez05/LeafTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/angelbohorquez05/LeafTrace/actions/workflows/ci.yml)
 
 An *object detection* system that locates, on tea leaves, the **feeding damage left by *Helopeltis*** (family **Miridae**), i.e. the pest's **traces**, not the insect itself, and enriches every detection with the leaf's growth stage and its position.
 
@@ -10,7 +10,7 @@ An *object detection* system that locates, on tea leaves, the **feeding damage l
 
 ## What it does
 
-*Helopeltis* is ~6–8 mm and mobile, so it is almost never captured in a photo: what stays visible and persistent is the **damage it leaves on the leaf**. Tea-Guard detects that damage, in two parts that run end-to-end ([`src/pipeline.py`](src/pipeline.py)):
+*Helopeltis* is ~6–8 mm and mobile, so it is almost never captured in a photo: what stays visible and persistent is the **damage it leaves on the leaf**. LeafTrace detects that damage, in two parts that run end-to-end ([`src/pipeline.py`](src/pipeline.py)):
 
 1. **Detects the pest's damage**: localises *Helopeltis* **feeding marks** on a leaf with a *bounding box* (YOLOv8-n, run with ONNX Runtime).
 2. **Classifies the leaf stage**: **young leaf** (tender shoot, high risk) vs **mature leaf**.
@@ -36,8 +36,8 @@ It is a **second entry point, not a pipeline stage**: the detector boxes *lesion
 Requirements: **Python 3.10+** and `git`. Everything runs **on CPU**.
 
 ```bash
-git clone https://github.com/angelbohorquez05/Tea-Guard.git
-cd Tea-Guard
+git clone https://github.com/angelbohorquez05/LeafTrace.git
+cd LeafTrace
 
 python -m venv venv
 venv\Scripts\Activate.ps1        # Windows (PowerShell)
@@ -81,12 +81,12 @@ The notebooks in [`notebooks/`](notebooks/) are saved with their figures, so the
 - **Leaf stage:** TeaLeafAgeQuality (Mendeley Data, CC BY 4.0), 2208 images by leaf age.
 - **Insects:** iNaturalist, open licences, rebuildable exactly from a manifest.
 
-Each set has its own README under [`data/raw/`](data/raw/) covering provenance, licences and how to rebuild it. The detector sets and the two deployed models are published as checksummed [release assets](https://github.com/angelbohorquez05/Tea-Guard/releases), so cloning stays light and every download is the same set of bytes.
+Each set has its own README under [`data/raw/`](data/raw/) covering provenance, licences and how to rebuild it. The detector sets and the two deployed models are published as checksummed [release assets](https://github.com/angelbohorquez05/LeafTrace/releases), so cloning stays light and every download is the same set of bytes.
 
 ## Structure
 
 ```
-Tea-Guard/
+LeafTrace/
 ├── src/
 │   ├── data.py            every dataset: download, rebuild, capture-session split
 │   ├── train.py           the three models: detector, flush stage, insect ID

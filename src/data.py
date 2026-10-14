@@ -52,7 +52,7 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-UA = {"User-Agent": "TeaGuard-dataset-builder/1.0 (academic research)"}
+UA = {"User-Agent": "LeafTrace-dataset-builder/1.0 (academic research)"}
 
 HELO_DIR = HERE.parent / "data" / "raw" / "helopeltis"
 FLUSH_DIR = HERE.parent / "data" / "raw" / "flush_stages"
@@ -746,9 +746,9 @@ def prepare_flush(raw_dir, out_dir=FLUSH_DIR):
 
 # Release assets on GitHub: zips are kept out of the git history so cloning
 # stays light, but they are pinned by checksum so every download is the same
-# set of bytes. Override the location with TEAGUARD_DATA_URL (a mirror, or a
+# set of bytes. Override the location with LEAFTRACE_DATA_URL (a mirror, or a
 # local folder for offline work).
-DATA_RELEASE_URL = "https://github.com/angelbohorquez05/Tea-Guard/releases/download/data-v1"
+DATA_RELEASE_URL = "https://github.com/angelbohorquez05/LeafTrace/releases/download/data-v1"
 RELEASE_ASSETS = {
     # asset name -> (sha256, extract into, folder that proves it is installed)
     "helopeltis.zip": (
@@ -775,7 +775,7 @@ def _read_asset(base, name):
 
 def download(force=False, base=None):
     """Fetch datasets and trained models, verify them, extract them, then split."""
-    base = (base or os.environ.get("TEAGUARD_DATA_URL") or DATA_RELEASE_URL).rstrip("/")
+    base = (base or os.environ.get("LEAFTRACE_DATA_URL") or DATA_RELEASE_URL).rstrip("/")
     for name, (sha256, dest, marker) in RELEASE_ASSETS.items():
         present = marker.is_dir() and any(marker.iterdir()) if marker.suffix == "" \
             else marker.exists()

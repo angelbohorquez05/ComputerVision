@@ -1,4 +1,4 @@
-# TeaGuard. Runs on CPU; no GPU or TensorFlow needed.
+# LeafTrace. Runs on CPU; no GPU or TensorFlow needed.
 # Smaller install: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Inference (the pipeline and the notebooks)
